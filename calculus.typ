@@ -1,6 +1,8 @@
 #let setup = (
-  font-family: "Lucida", //"Libertinus",
-  coloured: true,
+  // font-family: "Libertinus",
+  // font-family: "Libertine",
+  font-family: "Lucida",
+  coloured: false,
 )
 
 #let setup = if setup.font-family == "Lucida" {
@@ -11,11 +13,19 @@
     font-size: 10pt,
     font-leading: 0.85em, //FIXME: change?
   )
-} else {
+} else if setup.font-family == "Libertinus" {
   setup + (
     body-font: "Libertinus Serif",
     sans-font: "Libertinus Sans",
-    math-font: "Libertinus Math",
+    math-font: ("Libertinus Math", "New Computer Modern Math"),
+    font-size: 11pt,
+    font-leading: 0.65em,
+  )
+} else {
+  setup + (
+    body-font: "Linux Libertine",
+    sans-font: "Linux Biolinum",
+    math-font: "Linux Libertine Math",
     font-size: 11pt,
     font-leading: 0.65em,
   )
@@ -62,8 +72,9 @@
 #let owned(it) = $ceil(it)$
 #let borrowed(it) = $floor(it)$
 
+#let meta(it) = $grayed(it)$
 #let synthesize(contextIn, expression, quantity , type, contextOut) = $
-  input(contextIn) tack.r input(expression) :^input(quantity) output(type) ~> output(contextOut)
+  input(contextIn) space meta(tack.r) space input(expression) space meta(:)^input(quantity) space output(type) space meta(~>) space output(contextOut)
 $
 #let lookup(env, elem, type) = $input(env) forces input(elem) : output(type)$
 
@@ -79,13 +90,15 @@ $
 #let each(it) = $"for each" it$
 
 #let borrow(args, body) = $""^args {body}$
-#let funtion(fvars, pvars, body) = $keyword("fn")^fvars\(pvars\) space body$
+#let save = $keyword("box")$
+#let fun(pars, body) = $|pars| space body$
+#let cls(pars, vars, body) = $|pars|vars| space body$
 #let apply(func, args) = $func\(args\)$
 #let tuple(..items) = {
   let items = items.pos().join([,])
   $\(items\)$
 }
-#let variant(ctor, num, args) = $ctor^num \(args\)$
+#let variant(ctor, args) = $ctor\(args\)$
 #let list(items) = $\[items\]$
 #let bind(quant, names, expr, body) = $keyword("let")^quant space \(names\) = expr; space body$
 #let match(quant, scrut, arms) = $keyword("match")^quant space scrut space \{arms\}$
@@ -100,11 +113,11 @@ $
   // $\(from -> to\)$
 }
 #let List(type) = $"List"(type)$
-
 #let variants(..items) = {
-  let items = items.pos().join([,])
+  let items = items.pos().join($,$)
   $angle.l items angle.r$
 }
+#let type(name, items) = $keyword("type") space name = angle.l items angle.r$
 
 #let arg(name, quant, type) = $name attach(tr: quant, ":") type$
 #let qt(quant, it) = $attach(tl: quant, it)$
@@ -121,16 +134,16 @@ table(
   align: (right, left),
   $a$, [],
   $b$, [basic values],
-  $c$, [constants],
+  $c$, [primitive values],
   $d$, [declarations],
   $e$, [expressions],
-  $f$, [],
+  $f$, [builtin functions],
   $g$, [],
   $h$, [],
-  $i$, [],
-  $j$, [],
+  $i$, [(indexing)],
+  $j$, [(indexing)],
   $k$, [],
-  $l$, [],
+  $l$, [locations],
   $m$, [modules],
   $n$, [],
   $o$, [],
@@ -149,30 +162,30 @@ table(
 table(
   columns: 2,
   align: (right, left),
-  $alpha$,   [],
-  $beta$,    [],
+  $alpha$,   [type variables],
+  $beta$,    [basic types],
   $gamma$,   [],
   $delta$,   [],
-  $epsilon$, [()],
+  $epsilon$, [borrow quantity],
   $zeta$,    [],
-  $eta$,     [],
-  $theta$,   [],
+  $eta$,     [effect row],
+  $theta$,   [heap variables],
   $iota$,    [],
-  $kappa$,   [],
-  $lambda$,  [],
-  $mu$,      [],
-  $nu$,      [],
+  $kappa$,   [kinds],
+  $lambda$,  [effect label],
+  $mu$,      [multiple quantity],
+  $nu$,      [owned quantity],
   $xi$,      [],
   $omicron$, [],
-  $pi$,      [],
-  $rho$,     [rows],
-  $sigma$,   [schemas],
+  $pi$,      [primitive types],
+  $rho$,     [row variable],
+  $sigma$,   [type schemas],
   $tau$,     [types],
   $upsilon$, [],
   $phi$,     [],
   $chi$,     [],
   $psi$,     [],
-  $omega$,   [],
+  $omega$,   [unrestricted quantity],
 )
 )
 
@@ -186,25 +199,24 @@ table(
 #grammar("Expressions", $e$,
   $x, y, z$, "variable",
   $borrow(many(x, ""), e)$, "borrow",
-  $funtion(many(z, ""), many(arg(x, q, tau), n), e_0)$, "abstraction",
+  $save^? fun(many(arg(x, q, tau), n), e_0)$, "abstraction",
   $apply(e_0, many(e, n))$, "application",
   $tuple(many(e, n))$, "tuple",
   $bind(q_0, many(x, n), e_0, e)$, "split",
-  $variant(C, n, many(e, n))$, "variant",
-  $match(q_0, e_0, many(C^n \(many(x, n)\) |-> e, m))$, "match",
+  $variant(C, many(e, n))$, "variant",
+  $match(q_0, e_0, many(variant(C, many(x, n)) |-> e, m))$, "match",
 )
 
 #grammar("Values", $v$,
-  $funtion(many(z, ""), many(arg(x, q, tau), n), e_0)$, "abstraction",
+  $cls(many(arg(x, q, tau), n), many(z, ""), e_0)$, "abstraction",
   $tuple(many(v, n))$, "tuple",
-  $variant(C, n, many(v, n))$, "variant",
+  $variant(C, many(v, n))$, "variant",
 )
 
 #grammar("Basic values", $b$,
   $tuple(many(b, n))$, "tuple",
-  $variant(C, n, many(b, n))$, "variant",
+  $variant(C, many(b, n))$, "variant",
 )
-
 
 #grammar("Types", $tau$,
   $arrow(many(tau^q, n), tau_0)$, "abstraction",
@@ -217,6 +229,14 @@ table(
   $epsilon$, "borrowed",
   $1$, "linear",
   $omega$, "unrestricted",
+)
+
+#grammar("Declarations", $d$,
+  $type(X, many(C^n (many(tau, n)), m))$, "types",
+)
+
+#grammar("Modules", $m$,
+  $more(d); e$, "main"
 )
 
 #let shorthands(relation, ..rules) = align(center, table(
@@ -238,146 +258,10 @@ table(
 #pagebreak()
 == Typing
 
-The algorithmic typing rules of $lambda^"borrow"$ are given in @fig-rules.
+The algorithmic typing rules of $lambda^"borrow"$ are given in @fig-rules-variables, @fig-rules-curried, and @fig-rules-arrity.
 The typing relation $synthesize(Gamma, e, q, tau, Gamma')$ can be read as
 #quote[using expression $e$ with quantity $q$ can make use of all the bindings in context $Gamma$, which yields type $tau$ and a modifed context $Gamma'$.]
 
-#figure(caption: [Typing rules])[$
-  framed(synthesize(Gamma^+, e^+, q^+, tau^-, Gamma^-))
-  \
-
-  \
-  bold("Variables")
-  \
-
-  rule("Var"_1,
-    space,
-    synthesize(Gamma\, arg(x, 1, tau), x, 1, tau, Gamma),
-  ) quad
-  rule("Var"_mu,
-    space,
-    synthesize(Gamma\, arg(x, mu, tau), x, mu, tau, Gamma\, arg(x, mu, tau)),
-    condition: mu in {epsilon, omega}
-  )\
-
-  // rule("Weak",
-  //   synthesize(Gamma, x, omega, tau, Gamma),
-  //   synthesize(Gamma, x, 1, tau, Gamma),
-  // ) quad
-  rule("Var"_"weak",
-    space,
-    synthesize(Gamma\, arg(x, omega, tau) , x, 1, tau, Gamma\, arg(x, omega, tau)),
-  ) quad
-  rule("Borrow",
-    synthesize(Gamma_0\, more(arg(x, epsilon, tau) ), e, q, tau, Gamma_1\, more(arg(x, epsilon, tau))),
-    synthesize(Gamma_0\, more(arg(x, nu, tau)), borrow(more(x), e), q, tau, Gamma_1\, more(arg(x, nu, tau))),
-    condition: nu in {1, omega}
-  )\
-
-  \
-  bold("Introduction")
-  \
-
-  rule("Abs",
-    synthesize(Gamma_0^nu\, many(arg(x, q, tau), n), e_0, owned(q), tau_0, Gamma_1),
-    synthesize(Gamma_0^epsilon union Gamma_0^nu, funtion("", many(arg(x, q, tau), n), e_0), q,
-      arrow(many(tau^q, n), tau_0), Gamma_0^epsilon union Gamma_1 without many(x, n)),
-    condition: exists z in "fv"(e_0) without many(x, n). space arg(z, 1, tau_z) in Gamma_0  => q = 1,
-  )\
-  grayed(
-    rule("Abs",
-      synthesize(Gamma_0^nu\, arg(x_1, q_1, tau_1), e_0, owned(q), tau_0, Gamma_1),
-      synthesize(Gamma_0^epsilon union Gamma_0^nu, funtion("", arg(x_1, q_1, tau_1), e_0), q,
-        arrow(tau_1^(q_1), tau_0), Gamma_0^epsilon union Gamma_1 without x),
-      condition: exists z in "fv"(e_0) without x_1. space arg(z, 1, tau_z) in Gamma_0  => q = 1,
-    )\
-  )
-
-  rule("Pair",
-    each(i in 1..n),
-    synthesize(Gamma_i, e_i, owned(q), tau_i, Gamma_(i+1)),
-    synthesize(Gamma_1, tuple(many(e, n)), q, tuple(many(tau, n)), Gamma_(n+1)),
-  )\
-  grayed(
-    rule("Pair",
-      synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
-      synthesize(Gamma_2, e_2, owned(q), tau_2, Gamma_3),
-      synthesize(Gamma_1, tuple(e_1, e_2), q, tuple(tau_1, tau_2), Gamma_3),
-    )\
-  )
-
-  rule("Con",
-    lookup(Delta, C^n, arrow(many(tau, n), tau_0)),
-    each(i in 1..n),
-    synthesize(Gamma_i, e_i, owned(q), tau_i, Gamma_(i+1)),
-    synthesize(Gamma_1, variant(C, n, many(e, n)), q, tau_0, Gamma_(n+1)),
-  )\
-  grayed(
-    rule("Inj",
-      lookup(Delta, C, arrow(tau_1, tau_0)),
-      synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
-      synthesize(Gamma_1, variant(C, "", e_1), q, tau_0, Gamma_2),
-    )\
-  )
-
-  \
-  bold("Elimination")
-  \
-
-  rule("App",
-    synthesize(Gamma_0, e_0, q, arrow(many(tau^q, n), tau_0), Gamma_1),
-    each(i in 1..n),
-    synthesize(Gamma_i, e_i, q_i, tau_i, Gamma_(i+1)),
-    synthesize(Gamma_0, apply(e_0, many(e, n)), q, tau_0, Gamma_(n+1)),
-  )\
-  grayed(
-    rule("App",
-      synthesize(Gamma_0, e_0, q, arrow(tau_1^(q_1), tau_0), Gamma_1),
-      synthesize(Gamma_1, e_1, q_1, tau_1, Gamma_2),
-      synthesize(Gamma_0, apply(e_0, e_1), q, tau_0, Gamma_2),
-    )\
-  )
-
-  rule("Let",
-    synthesize(Gamma_0, e_0, q_0, tuple(many(tau, n)), Gamma_1),
-    synthesize(Gamma_1\, many(arg(x, q_0, tau), n), e, q, tau, Gamma_2),
-    synthesize(Gamma_0, bind(q_0, many(x, n), e_0, e), q, tau, Gamma_2 without many(x, n)),
-  )\
-  grayed(
-    rule("Let",
-      synthesize(Gamma_0, e_0, q_0, tuple(tau_1, tau_2), Gamma_1),
-      synthesize(Gamma_1\, arg(x_1, q_1, tau_1)\, arg(x_2, q_2, tau_2), e, q, tau, Gamma_2),
-      synthesize(Gamma_0, bind(q_0, x_1\, x_2, e_0, e), q, tau, Gamma_2 without x_1\, x_2),
-    )\
-  )
-
-  rule("Match",
-    synthesize(Gamma_0, e_0, q_0, tau_0, Gamma_1),
-    each(i in 1..m),
-    lookup(Delta, C_i^(n_i), arrow(many(tau, n_i), tau_0)),
-    synthesize(Gamma_1\, many(arg(x, q_0, tau), n_i), e_i, q, tau, Gamma_2 union many(arg(x, q_0, tau), n_i)),
-    synthesize(Gamma_0, match(q_0, e_0, many(variant(C, n, many(x, n)) |-> e, m)), q, tau, Gamma_2),
-  )\
-
-  grayed(
-    rule("Match",
-      synthesize(Gamma_0, e_0, q_0, tau_0, Gamma_1),
-      each(i in 1..2),
-      lookup(Delta, C_i, arrow(tau_i, tau_0)),
-      synthesize(Gamma_1\, arg(x_i, q_0, tau_i), e_i, q, tau, Gamma_2 union arg(x_i, q_0, tau_i)),
-      synthesize(Gamma_0, match(q_0, e_0, many(variant(C, "", x) |-> e, 2)), q, tau, Gamma_2),
-    )\
-  )
-
-  // rule("Fold",
-  //   synthesize(Gamma_1, e_1, q_1, list(tau_1), Gamma_2),
-  //   synthesize(Gamma_2, e_2, 1, tau_2, Gamma_3),
-  //   synthesize(Gamma_3\, arg(x_1, q, tau_1)\, arg(x_2, 1, tau_2), e_3, 1, tau, Gamma_4),
-  //   synthesize(Gamma_1, fold(q_1, e_1, e_2, x_1, x_2, e_3), "", tau, Gamma_4),
-  // )\
-$]<fig-rules>
-
-#pagebreak()
 === Helpers
 
 #let function(signature, ..rules) = table(
@@ -417,10 +301,168 @@ $]<fig-rules>
   $"Cons"^2$, $arrow(tau, List(tau), List(tau))$, "cons list",
 )
 #shorthands(":=",
-  $"Bool"$, $variants("False"^0: (), "True"^0: ())$, "boolean type",
-  $"Option"(tau)$, $variants("None"^0: (), "Some"^1: tau)$, "option type",
-  $"Result"(tau_1, tau_2)$, $variants("Wrong"^1: tau_1, "Right"^1: tau_2)$, "either type",
+  $"Bool"$, $variants("False"(), "True"())$, "boolean type",
+  $"Option"(tau)$, $variants("None"(), "Some"(tau))$, "option type",
+  $"Result"(tau_1, tau_2)$, $variants("Wrong"(tau_1), "Right"(tau_2))$, "either type",
 )
+
+=== Common
+
+#figure(caption: [Typing rules (variables)])[$
+  framed(synthesize(Gamma^+, e^+, q^+, tau^-, Gamma^-))
+  \
+
+  \
+  bold("Variables")
+  \
+
+  rule("Var"_1,
+    space,
+    synthesize(Gamma\, arg(x, 1, tau), x, 1, tau, Gamma),
+  ) quad
+  rule("Var"_mu,
+    space,
+    synthesize(Gamma\, arg(x, mu, tau), x, mu, tau, Gamma\, arg(x, mu, tau)),
+    condition: mu in {epsilon, omega}
+  )\
+
+  // rule("Weak",
+  //   synthesize(Gamma, x, omega, tau, Gamma),
+  //   synthesize(Gamma, x, pi, tau, Gamma),
+  // ) quad
+  // rule("Var"_pi,
+  //   space,
+  //   synthesize(Gamma\, arg(x, omega, tau) , x, pi, tau, Gamma\, arg(x, omega, tau)),
+  //   condition: pi in {1, epsilon}
+  // ) quad
+  // rule("Weak",
+  //   synthesize(Gamma, x, omega, tau, Gamma),
+  //   synthesize(Gamma, x, pi, tau, Gamma),
+  // ) quad
+  rule("Var"_"weak",
+    space,
+    synthesize(Gamma\, arg(x, omega, tau) , x, 1, tau, Gamma\, arg(x, omega, tau)),
+  ) quad
+  rule("Borrow",
+    synthesize(Gamma_0\, more(arg(x, epsilon, tau) ), e, owned(q), tau, Gamma_1\, more(arg(x, epsilon, tau))),
+    synthesize(Gamma_0\, more(arg(x, 1, tau)), borrow(more(x), e), q, tau, Gamma_1\, more(arg(x, 1, tau))),
+  )\
+$]<fig-rules-variables>
+
+#pagebreak()
+=== Curried calculus
+
+#figure(caption: [Typing rules (curried)])[$
+  \
+  bold("Introduction")
+  \
+
+
+    rule("Abs",
+      synthesize(Gamma_0^nu\, arg(x_1, q_1, tau_1), e_0, owned(q), tau_0, Gamma_1),
+      synthesize(Gamma_0^epsilon union Gamma_0^nu, fun(arg(x_1, q_1, tau_1), e_0), q,
+        arrow(tau_1^(q_1), tau_0), Gamma_0^epsilon union Gamma_1 without x),
+      condition: exists z in "fv"(e_0) without x_1. space arg(z, 1, tau_z) in Gamma_0  => q = 1,
+    )\
+
+
+    rule("Pair",
+      synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
+      synthesize(Gamma_2, e_2, owned(q), tau_2, Gamma_3),
+      synthesize(Gamma_1, tuple(e_1, e_2), q, tuple(tau_1, tau_2), Gamma_3),
+    )\
+
+    rule("Inj",
+      lookup(Delta, C, arrow(tau_1, tau_0)),
+      synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
+      synthesize(Gamma_1, variant(C, e_1), q, tau_0, Gamma_2),
+    )\
+
+  \
+  bold("Elimination")
+  \
+
+    rule("App",
+      synthesize(Gamma_0, e_0, borrowed(q), arrow(tau_1^(q_1), tau_0), Gamma_1),
+      synthesize(Gamma_1, e_1, q_1, tau_1, Gamma_2),
+      synthesize(Gamma_0, apply(e_0, e_1), q, tau_0, Gamma_2),
+    )\
+
+    rule("Let",
+      synthesize(Gamma_0, e_0, q_0, tuple(tau_1^(q_1), tau_2^(q_2)), Gamma_1),
+      synthesize(Gamma_1\, arg(x_1, q_1, tau_1)\, arg(x_2, q_2, tau_2), e, q, tau, Gamma_2),
+      synthesize(Gamma_0, bind(q_0, x_1\, x_2, e_0, e), q, tau, Gamma_2 without x_1\, x_2),
+    )\
+
+    rule("Match",
+      synthesize(Gamma_0, e_0, q_0, tau_0, Gamma'_0),
+      each(i in 1..2),
+      lookup(Delta, C_i, arrow(tau_i, tau_0)),
+      synthesize(Gamma'_0\, arg(x_i, q_0, tau_i), e_i, q, tau, Gamma'_i),
+      synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) |-> e, 2)), q, tau, Gamma'_1 without x_1 sect.double Gamma'_2 without x_2),
+    )\
+
+    rule("Match",
+      synthesize(Gamma_0, e_0, q_0, variants(many(tau_i, 2)), Gamma'_0),
+      each(i in 1..2),
+      synthesize(Gamma'_0\, arg(x_i, q_0, tau_i), e_i, q, tau, Gamma'_i),
+      synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) |-> e, 2)), q, tau, Gamma'_1 without x_1 sect.double Gamma'_2 without x_2),
+    )\
+
+$]<fig-rules-curried>
+
+
+=== Arrity calculus
+
+#figure(caption: [Typing rules])[$
+  bold("Introduction")
+  \
+
+  rule("Abs",
+    synthesize(Gamma_0^nu\, many(arg(x, q, tau), n), e_0, owned(q), tau_0, Gamma_1),
+    synthesize(Gamma_0^epsilon union Gamma_0^nu, fun(many(arg(x, q, tau), n), e_0), q,
+      arrow(many(tau^q, n), tau_0), Gamma_0^epsilon union Gamma_1 without many(x, n)),
+    condition: exists z in "fv"(e_0) without many(x, n). space arg(z, 1, tau_z) in Gamma_0  => q = 1,
+  )\
+
+  rule("Pair",
+    each(i in 1..n),
+    synthesize(Gamma_i, e_i, owned(q), tau_i, Gamma_(i+1)),
+    synthesize(Gamma_1, tuple(many(e, n)), q, tuple(many(tau, n)), Gamma_(n+1)),
+  )\
+
+  rule("Con",
+    lookup(Delta, C, arrow(many(tau, n), tau_0)),
+    each(i in 1..n),
+    synthesize(Gamma_i, e_i, owned(q), tau_i, Gamma_(i+1)),
+    synthesize(Gamma_1, variant(C, many(e, n)), q, tau_0, Gamma_(n+1)),
+  )\
+
+  \
+  bold("Elimination")
+  \
+
+  rule("App",
+    synthesize(Gamma_0, e_0, borrowed(q), arrow(many(tau^q, n), tau_0), Gamma_1),
+    each(i in 1..n),
+    synthesize(Gamma_i, e_i, q_i, tau_i, Gamma_(i+1)),
+    synthesize(Gamma_0, apply(e_0, many(e, n)), q, tau_0, Gamma_(n+1)),
+  )\
+
+  rule("Let",
+    synthesize(Gamma_0, e_0, q_0, tuple(many(tau, n)), Gamma_1),
+    synthesize(Gamma_1\, many(arg(x, q_0, tau), n), e, q, tau, Gamma_2),
+    synthesize(Gamma_0, bind(q_0, many(x, n), e_0, e), q, tau, Gamma_2 without many(x, n)),
+  )\
+
+  rule("Match",
+    synthesize(Gamma_0, e_0, q_0, tau_0, Gamma'_0),
+    each(i in 1..m),
+    lookup(Delta, C_i^(n_i), arrow(many(tau, n_i), tau_0)),
+    synthesize(Gamma'_0\, many(arg(x, q_0, tau), n_i), e_i, q, tau, Gamma'_i),
+    synthesize(Gamma_0, match(q_0, e_0, many(variant(C, many(x, n)) |-> e, m)), q, tau, sect.double_(i in 1..m) Gamma'_i without x_i),
+  )\
+$]<fig-rules-arrity>
 
 #pagebreak()
 == Tests
@@ -449,6 +491,7 @@ $\
 $
 
 $
+  union.big.dot sect.big #place(dx: -1.125em, $=$) underline(sect.big) \
   Gamma_0 union Gamma_1 without Gamma_2 \
   Gamma_0 union.double Gamma_1 backslash Gamma_2 \
   Gamma_0 union.double Gamma_1 slash.double Gamma_2 \
