@@ -3,6 +3,7 @@
   // font-family: "Libertine",
   font-family: "Lucida",
   coloured: false,
+  line-indent: 1.5em,
 )
 
 #let setup = if setup.font-family == "Lucida" {
@@ -33,11 +34,16 @@
 
 #show math.equation: set text(font: setup.math-font)
 #set text(font: setup.body-font, size: setup.font-size)
-#set par(leading: setup.font-leading)
+#set par(
+  leading: setup.font-leading,
+  first-line-indent: setup.line-indent,
+)
+#show par: set block(spacing: setup.font-leading)
 #set table(stroke: none)
 
 #let identity(it) = it
 
+#let todo(it) = text(fill: color.red, it)
 #let framed(it) = box(stroke: 1pt, inset: 4pt, it)
 #let grayed(it) = {
   set text(fill: color.gray)
@@ -88,9 +94,11 @@ $
 // #let many(item, "n") = $item_1, ..., item_amount$
 #let each(it) = $forall_(it)$
 #let each(it) = $"for each" it$
+// #let with = math.dot
+#let with = $comma space$
 
 #let borrow(args, body) = $""^args {body}$
-#let save = $keyword("box")$
+#let box = $keyword("box")$
 #let fun(pars, body) = $|pars| space body$
 #let cls(pars, vars, body) = $|pars|vars| space body$
 #let apply(func, args) = $func\(args\)$
@@ -100,7 +108,7 @@ $
 }
 #let variant(ctor, args) = $ctor\(args\)$
 #let list(items) = $\[items\]$
-#let bind(quant, names, expr, body) = $keyword("let")^quant space \(names\) = expr; space body$
+#let bind(quant, names, expr, body) = $keyword("let")^quant space names = expr; space body$
 #let match(quant, scrut, arms) = $keyword("match")^quant space scrut space \{arms\}$
 //arms.pos().chunks(2).map(((pat, exp)) => pat |-> exp)$
 // #let fold(quant, list, accum, var1, var2, body) = $keyword("fold")^quant space list keyword("from") accum keyword("with") var1, var2 |-> body$
@@ -112,7 +120,12 @@ $
   // let from = from.pos().join($times$)
   // $\(from -> to\)$
 }
-#let List(type) = $"List"(type)$
+#let type(name, ..inner) = {
+  let inner = inner.pos().join($, space$)
+  // $name angle.l inner angle.r$
+  $name(inner)$
+}
+#let List(inner) = type("List", inner)
 #let variants(..items) = {
   let items = items.pos().join($,$)
   $angle.l items angle.r$
@@ -121,6 +134,29 @@ $
 
 #let arg(name, quant, type) = $name attach(tr: quant, ":") type$
 #let qt(quant, it) = $attach(tl: quant, it)$
+
+
+#let function(signature, ..rules) = table(
+  columns: 3,
+  align: (left, center, left),
+  table.cell(colspan: 3, signature),
+  ..rules
+    .pos()
+    .chunks(2)
+    .map( ((pattern, definition)) => (pattern, $=$, definition) )
+    .flatten()
+)
+
+#let shorthands(relation, ..rules) = align(center, table(
+  columns: 4,
+  align: (right, center, left, left),
+  ..rules
+    .pos()
+    .chunks(3)
+    .map( ((short, long, description)) => (short, relation, long, "– " + description) )
+    .flatten()
+))
+
 
 = Borrowing calculus
 
@@ -199,10 +235,10 @@ table(
 #grammar("Expressions", $e$,
   $x, y, z$, "variable",
   $borrow(many(x, ""), e)$, "borrow",
-  $save^? fun(many(arg(x, q, tau), n), e_0)$, "abstraction",
+  $box^? fun(many(arg(x, q, tau), n), e_0)$, "abstraction",
   $apply(e_0, many(e, n))$, "application",
   $tuple(many(e, n))$, "tuple",
-  $bind(q_0, many(x, n), e_0, e)$, "split",
+  $bind(q_0, tuple(many(x, n)), e_0, e)$, "split",
   $variant(C, many(e, n))$, "variant",
   $match(q_0, e_0, many(variant(C, many(x, n)) |-> e, m))$, "match",
 )
@@ -239,16 +275,6 @@ table(
   $more(d); e$, "main"
 )
 
-#let shorthands(relation, ..rules) = align(center, table(
-  columns: 4,
-  align: (right, center, left, left),
-  ..rules
-    .pos()
-    .chunks(3)
-    .map( ((short, long, description)) => (short, relation, long, "– " + description) )
-    .flatten()
-))
-
 #shorthands($in$,
   $mu$, ${epsilon, omega}$, "multiple",
   $nu$, ${1, omega}$, "owned",
@@ -258,170 +284,258 @@ table(
 #pagebreak()
 == Typing
 
-The algorithmic typing rules of $lambda^"borrow"$ are given in @fig-rules-variables, @fig-rules-curried, and @fig-rules-arrity.
-The typing relation $synthesize(Gamma, e, q, tau, Gamma')$ can be read as
+The algorithmic typing rules of $lambda^"borrow"$ are given below.
+The typing relation
+$
+  framed(synthesize(Gamma^+, e^+, q^+, tau^-, Gamma^-))
+$
+can be read as
 #quote[using expression $e$ with quantity $q$ can make use of all the bindings in context $Gamma$, which yields type $tau$ and a modifed context $Gamma'$.]
 
-=== Helpers
+=== Variable lookup
 
-#let function(signature, ..rules) = table(
-  columns: 3,
-  align: (left, center, left),
-  table.cell(colspan: 3, signature),
-  ..rules
-    .pos()
-    .chunks(2)
-    .map( ((pattern, definition)) => (pattern, $=$, definition) )
-    .flatten()
+#let rules = (
+  var_1: $
+    rule("Var"_1,
+      space,
+      synthesize(Gamma with arg(x, 1, tau), x, 1, tau, Gamma),
+    )
+  $,
+  var_mu: $
+    rule("Var"_mu,
+      space,
+      synthesize(Gamma with arg(x, mu, tau), x, mu, tau, Gamma with arg(x, mu, tau)),
+      condition: mu in {epsilon, omega}
+    )
+  $,
+  curried: (
+  ),
 )
 
-#function($owned(.) : "Quantity" -> "Quantity"$,
-  $owned(epsilon)$, $1$,
-  $owned(q)$, $q$,
-)
+Variable lookup comes in two flavours.
+Linear bindings with quantity $1$ are looked up and removed from the context as shown in rule $"Var"_1$.
+Borrowed and unrestricted bindings with quantities $epsilon$ and $omega$ respectively,
+are looked up, but stay in the resulting context.
+Rules $"Var"_mu$ defines this for $mu in {epsilon, omega}$ simultaneously.
+$
+  #rules.var_1 quad #rules.var_mu
+$
 
-#function($borrowed(.) : "Quantity" -> "Quantity"$,
-  $borrowed(\_)$, $epsilon$,
-)
+We need a _weakening_ rule which states that unrestricted bindings can be used linearly ($"Var"_"Weak"$).
+Equivalently, we could define weakening as a general rule on bindings instead of a rule for variable lookup.
+However, this way our rule set would be nondeterministic.
+$
+  rule("Var"_"weak",
+    space,
+    synthesize(Gamma with arg(x, omega, tau) , x, 1, tau, Gamma with arg(x, omega, tau)),
+  )
+  quad grayed(
+    rule("Weak",
+      synthesize(Gamma, x, omega, tau, Gamma),
+      synthesize(Gamma, x, 1, tau, Gamma),
+    )
+  )
+$
 
-=== Constants
+We allow every owned binding, that is bindings with quantity $1$ or $omega$, to be borrowed.
+Borrows are only valid in a lexical region.
+After this region ends, we restore the original quantity on the binding.
+$
+  rule("Borrow"_nu,
+    synthesize(Gamma_0 with more(arg(x, epsilon, tau) ), e, owned(q), tau, Gamma_1 with more(arg(x, epsilon, tau))),
+    synthesize(Gamma_0 with more(arg(x, nu, tau)), borrow(more(x), e), q, tau, Gamma_1 with more(arg(x, nu, tau))),
+    condition: nu in {1, omega}
+  )
+$
+Here, we need to take care borrowed bindings do not escape from this region.
+Therefore, we _lift_ quantity $q$ of the expression surroundings to be _owned_.
+That is, borrowed expression surroundings are lifted to unrestricted contexts,
+the two owning quantities stay the same.
+The definitions of lifting and lowering is as follows.
+$
+  function(owned(dot) : "Quantity" -> "Quantity",
+    owned(epsilon), omega,
+    owned(q), q,
+  ) \
+  function(borrowed(dot) : "Quantity" -> "Quantity",
+    borrowed(\_), epsilon,
+  )
+$
 
-#let constants(..rules) = table(
-  columns: 3,
-  align: (right, center, left),
-  ..rules
-    .pos()
-    .chunks(2)
-    .map( ((name, type)) => (name, $:$, type) )
-    .flatten()
-)
+Alternatively, to allow for free borrowing of unrestricted bindings,
+we could alter $"Var"_"weak"$ to also include $epsilon$ in its expression surroundings.
+We can change $"Borrow"_nu$ accordingly for explicit borrows of linear variables only.
+$
+  grayed(
+    rule("Var"_pi,
+      space,
+      synthesize(Gamma with arg(x, omega, tau) , x, pi, tau, Gamma with arg(x, omega, tau)),
+      condition: pi in {1, epsilon}
+    )\
+    rule("Borrow"_1,
+      synthesize(Gamma_0 with more(arg(x, epsilon, tau) ), e, owned(q), tau, Gamma_1 with more(arg(x, epsilon, tau))),
+      synthesize(Gamma_0 with more(arg(x, 1, tau)), borrow(more(x), e), q, tau, Gamma_1 with more(arg(x, 1, tau))),
+    )
+  )
+$
+
+=== Functions
+
+For function abstraction, we have three cases, one for each quantity.
+Depending on the quantity of the expression surroundings,
+anonymous function blocks have access to different sets of bindings.
+/ $epsilon$:
+  As we are in a borrowed expression surroundings, function blocks cannot be returned nor stored: they are _second-class_.
+  Therefore, these blocks have access to all borrowed bindings as well as all unrestricted bindings.
+  As they can be called multiple times (the code is borrowed and can be used multiple times),
+  we cannot allow usage of linear bindings.
+/ $omega$:
+  For unrestricted expression surroundings the situation in different.
+  As these function blocks are owned, they _can_ be stored or returned.
+  Therefore, we need to make sure second-class bindings are not stored in its closure.
+  Borrowed bindings should not escape, only unrestricted bindings are allowed.
+/ $1$:
+  Similarly, linear blocks are first-class and can be saved or returned,
+  so we cannot close over borrowed bindings.
+  However, as we know that the resulting closure can only be used _once_,
+  in this case we can also allow access to linear bindings.
+$
+  rule("Abs"_epsilon,
+    synthesize(Gamma_0^epsilon with Gamma_0^omega with arg(x_1, q_1, tau_1), e_0, omega, tau_0, Gamma_1),
+    synthesize(Gamma_0, fun(arg(x_1, q_1, tau_1), e_0), epsilon, arrow(qt(q_1, tau_1), tau_0), Gamma_0^1 with Gamma_1 without x),
+  )\
+  rule("Abs"_1,
+    synthesize(Gamma_0^1 with Gamma_0^omega with arg(x_1, q_1, tau_1), e_0, 1, tau_0, Gamma_1),
+    synthesize(Gamma_0, fun(arg(x_1, q_1, tau_1), e_0), 1, arrow(qt(q_1, tau_1), tau_0), Gamma_0^epsilon with Gamma_1 without x),
+  )\
+  rule("Abs"_omega,
+    synthesize(Gamma_0^omega with arg(x_1, q_1, tau_1), e_0, omega, tau_0, Gamma_1),
+    synthesize(Gamma_0, fun(arg(x_1, q_1, tau_1), e_0), omega, arrow(qt(q_1, tau_1), tau_0), Gamma_0^epsilon with Gamma_0^1 with Gamma_1 without x),
+  )\
+$
+
+To select bindings with the proper quantity from the context, we use _context filtering_ which is defined as follows.
+$
+  function(Gamma^q : "Context" times "Quantity" -> "Context",
+    nothing^q, nothing,
+    (Gamma with arg(x, q, tau))^q, Gamma^q with arg(x, q, tau),
+    (Gamma with arg(x, q', tau))^q, Gamma^q,
+  )
+$
+
+When functions are applied in an expression surroundings of quantity $q$,
+the function itself needs to be available $q$ times.
+Quantities of the arguments are determined by the function's type signature.
+$
+  rule("App",
+    synthesize(Gamma_0, e_0, q, arrow(qt(q_1, tau_1), tau_0), Gamma_1),
+    synthesize(Gamma_1, e_1, q_1, tau_1, Gamma_2),
+    synthesize(Gamma_0, apply(e_0, e_1), q, tau_0, Gamma_2),
+  )
+$
+
+=== Datatypes
+
+When creating datatypes, we need to store data so each subexpression in constructors needs to be owned.
+Although we allow creating datatypes in borrowed expression surroundings,
+we lift the context quantity to make sure stored data is owned.
+$
+  rule("Pair",
+    synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
+    synthesize(Gamma_2, e_2, owned(q), tau_2, Gamma_3),
+    synthesize(Gamma_1, tuple(e_1, e_2), q, tuple(tau_1, tau_2), Gamma_3),
+  )\
+  rule("Con",
+    lookup(Delta, C, arrow(tau_1, tau_0)),
+    synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
+    synthesize(Gamma_1, variant(C, e_1), q, tau_0, Gamma_2),
+  )\
+  // rule("Inl",
+  //   synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
+  //   synthesize(Gamma_1, variant("Inl", e_1), q, variants(tau_1, tau_2), Gamma_2),
+  // ) quad
+  // rule("Inr",
+  //   synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
+  //   synthesize(Gamma_1, variant("Inr", e_1), q, variants(tau_2, tau_1), Gamma_2),
+  // )\
+$
+Note the similarities and differences between rules $"Con"$ and $"App"$:
+- Both "lookup" the type of the function or constructor,
+  which directs the type of the arguments and the returntype of the application or construction.
+- In application, the quantities of the arguments are directed by the function type,
+  while in construction, these quantities are directed by the expression surroundings.
+
+When destructuring datatypes, we have two quantities to take into account:
+- The quantity in which the whole destructuring expression is going to be evaluated
+  We call this the _expression context quantity_.
+- The quantity of the resulting parts of the datatype, that are made available in continuation of the program.
+  This is also the quantity that the scrutiny needs to be available for.
+  To accommodate for this,
+  we annotate destructuring constructs in our language with an addition quantity $q_0$.
+
+For the splitting of tuples, we ask an expression $e_0$ to be available for quantity $q_0$.
+The resulting bindings $x_1$ and $x_2$ are then made available for the same quantity $q_0$ in the remaining part of the program.
+Note we need to remove these bindings from the resulting context $Gamma_2$ if they still exist.
+
+$
+  rule("Let",
+    synthesize(Gamma_0, e_0, q_0, tuple(tau_1, tau_2), Gamma_1),
+    synthesize(Gamma_1 with arg(x_1, q_0, tau_1) with arg(x_2, q_0, tau_2), e, q, tau, Gamma_2),
+    synthesize(Gamma_0, bind(q_0, tuple(x_1, x_2), e_0, e), q, tau, Gamma_2 without x_1 without x_2),
+  )
+$
+
+For destructuring we can make a similar argument regarding the match-quantity $q_0$.
+Additionally, because now we have multiple branches that can be taken, we need to _merge_ the resulting contexts of each branch and remove the freshly introduced bindings if still existing.
+$
+  rule("Des",
+    synthesize(Gamma_0, e_0, q_0, tau_0, Gamma'_0),
+    each(i in 1..2),
+    lookup(Delta, C_i, arrow(tau_i, tau_0)),
+    synthesize(Gamma'_0 with arg(x_i, q_0, tau_i), e_i, q, tau, Gamma_i),
+    synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) |-> e, 2)), q, tau, Gamma_1 without x_1 sect.double Gamma_2 without x_2),
+  )\
+  // rule("Des",
+  //   synthesize(Gamma_0, e_0, q_0, variants(many(tau_i, 2)), Gamma'_0),
+  //   each(i in 1..2),
+  //   synthesize(Gamma'_0 with arg(x_i, q_0, tau_i), e_i, q, tau, Gamma_i),
+  //   synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) |-> e, 2)), q, tau, Gamma_1 without x_1 sect.double Gamma_2 without x_2),
+  // )
+$
+
+As after branching, contexts can only differ in removed linear bindings,
+merging two contexts is simply set intersection.
+#todo[Check this! Aren't we passing let-bound variables to the next argument?]
+
+=== Built-ins
+
 #shorthands(":",
-  $"fold"_q$, $forall_q. arrow(qt(q, List(tau_1)), qt(1, tau_2), qt(epsilon, arrow(qt(q, tau_1), qt(1, tau_2), tau_2)), tau_2)$, "fold list",
-  $"Nil"^0_tau$, $List(tau)$, "nil list",
-  $"Cons"^2$, $arrow(tau, List(tau), List(tau))$, "cons list",
+  $"fold"_q$, $arrow(qt(q, List(tau_1)), qt(1, tau_2), qt(epsilon, arrow(qt(q, tau_1), qt(1, tau_2), tau_2)), tau_2)$, "fold list",
 )
+
+#shorthands(":",
+  $"Nil"_tau$, $List(tau)$, "nil list",
+  $"Cons"$, $arrow(tau, List(tau), List(tau))$, "cons list",
+)
+
 #shorthands(":=",
   $"Bool"$, $variants("False"(), "True"())$, "boolean type",
   $"Option"(tau)$, $variants("None"(), "Some"(tau))$, "option type",
   $"Result"(tau_1, tau_2)$, $variants("Wrong"(tau_1), "Right"(tau_2))$, "either type",
 )
 
-=== Common
-
-#figure(caption: [Typing rules (variables)])[$
-  framed(synthesize(Gamma^+, e^+, q^+, tau^-, Gamma^-))
-  \
-
-  \
-  bold("Variables")
-  \
-
-  rule("Var"_1,
-    space,
-    synthesize(Gamma\, arg(x, 1, tau), x, 1, tau, Gamma),
-  ) quad
-  rule("Var"_mu,
-    space,
-    synthesize(Gamma\, arg(x, mu, tau), x, mu, tau, Gamma\, arg(x, mu, tau)),
-    condition: mu in {epsilon, omega}
-  )\
-
-  // rule("Weak",
-  //   synthesize(Gamma, x, omega, tau, Gamma),
-  //   synthesize(Gamma, x, pi, tau, Gamma),
-  // ) quad
-  // rule("Var"_pi,
-  //   space,
-  //   synthesize(Gamma\, arg(x, omega, tau) , x, pi, tau, Gamma\, arg(x, omega, tau)),
-  //   condition: pi in {1, epsilon}
-  // ) quad
-  // rule("Weak",
-  //   synthesize(Gamma, x, omega, tau, Gamma),
-  //   synthesize(Gamma, x, pi, tau, Gamma),
-  // ) quad
-  rule("Var"_"weak",
-    space,
-    synthesize(Gamma\, arg(x, omega, tau) , x, 1, tau, Gamma\, arg(x, omega, tau)),
-  ) quad
-  rule("Borrow",
-    synthesize(Gamma_0\, more(arg(x, epsilon, tau) ), e, owned(q), tau, Gamma_1\, more(arg(x, epsilon, tau))),
-    synthesize(Gamma_0\, more(arg(x, 1, tau)), borrow(more(x), e), q, tau, Gamma_1\, more(arg(x, 1, tau))),
-  )\
-$]<fig-rules-variables>
 
 #pagebreak()
-=== Curried calculus
-
-#figure(caption: [Typing rules (curried)])[$
-  \
-  bold("Introduction")
-  \
-
-
-    rule("Abs",
-      synthesize(Gamma_0^nu\, arg(x_1, q_1, tau_1), e_0, owned(q), tau_0, Gamma_1),
-      synthesize(Gamma_0^epsilon union Gamma_0^nu, fun(arg(x_1, q_1, tau_1), e_0), q,
-        arrow(tau_1^(q_1), tau_0), Gamma_0^epsilon union Gamma_1 without x),
-      condition: exists z in "fv"(e_0) without x_1. space arg(z, 1, tau_z) in Gamma_0  => q = 1,
-    )\
-
-
-    rule("Pair",
-      synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
-      synthesize(Gamma_2, e_2, owned(q), tau_2, Gamma_3),
-      synthesize(Gamma_1, tuple(e_1, e_2), q, tuple(tau_1, tau_2), Gamma_3),
-    )\
-
-    rule("Inj",
-      lookup(Delta, C, arrow(tau_1, tau_0)),
-      synthesize(Gamma_1, e_1, owned(q), tau_1, Gamma_2),
-      synthesize(Gamma_1, variant(C, e_1), q, tau_0, Gamma_2),
-    )\
-
-  \
-  bold("Elimination")
-  \
-
-    rule("App",
-      synthesize(Gamma_0, e_0, borrowed(q), arrow(tau_1^(q_1), tau_0), Gamma_1),
-      synthesize(Gamma_1, e_1, q_1, tau_1, Gamma_2),
-      synthesize(Gamma_0, apply(e_0, e_1), q, tau_0, Gamma_2),
-    )\
-
-    rule("Let",
-      synthesize(Gamma_0, e_0, q_0, tuple(tau_1^(q_1), tau_2^(q_2)), Gamma_1),
-      synthesize(Gamma_1\, arg(x_1, q_1, tau_1)\, arg(x_2, q_2, tau_2), e, q, tau, Gamma_2),
-      synthesize(Gamma_0, bind(q_0, x_1\, x_2, e_0, e), q, tau, Gamma_2 without x_1\, x_2),
-    )\
-
-    rule("Match",
-      synthesize(Gamma_0, e_0, q_0, tau_0, Gamma'_0),
-      each(i in 1..2),
-      lookup(Delta, C_i, arrow(tau_i, tau_0)),
-      synthesize(Gamma'_0\, arg(x_i, q_0, tau_i), e_i, q, tau, Gamma'_i),
-      synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) |-> e, 2)), q, tau, Gamma'_1 without x_1 sect.double Gamma'_2 without x_2),
-    )\
-
-    rule("Match",
-      synthesize(Gamma_0, e_0, q_0, variants(many(tau_i, 2)), Gamma'_0),
-      each(i in 1..2),
-      synthesize(Gamma'_0\, arg(x_i, q_0, tau_i), e_i, q, tau, Gamma'_i),
-      synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) |-> e, 2)), q, tau, Gamma'_1 without x_1 sect.double Gamma'_2 without x_2),
-    )\
-
-$]<fig-rules-curried>
-
-
-=== Arrity calculus
+== Arrity calculus
 
 #figure(caption: [Typing rules])[$
   bold("Introduction")
   \
 
   rule("Abs",
-    synthesize(Gamma_0^nu\, many(arg(x, q, tau), n), e_0, owned(q), tau_0, Gamma_1),
-    synthesize(Gamma_0^epsilon union Gamma_0^nu, fun(many(arg(x, q, tau), n), e_0), q,
-      arrow(many(tau^q, n), tau_0), Gamma_0^epsilon union Gamma_1 without many(x, n)),
+    synthesize(Gamma_0^nu with many(arg(x, q, tau), n), e_0, owned(q), tau_0, Gamma_1),
+    synthesize(Gamma_0^epsilon with Gamma_0^nu, fun(many(arg(x, q, tau), n), e_0), q,
+      arrow(many(tau^q, n), tau_0), Gamma_0^epsilon with Gamma_1 without many(x, n)),
     condition: exists z in "fv"(e_0) without many(x, n). space arg(z, 1, tau_z) in Gamma_0  => q = 1,
   )\
 
@@ -451,7 +565,7 @@ $]<fig-rules-curried>
 
   rule("Let",
     synthesize(Gamma_0, e_0, q_0, tuple(many(tau, n)), Gamma_1),
-    synthesize(Gamma_1\, many(arg(x, q_0, tau), n), e, q, tau, Gamma_2),
+    synthesize(Gamma_1 with many(arg(x, q_0, tau), n), e, q, tau, Gamma_2),
     synthesize(Gamma_0, bind(q_0, many(x, n), e_0, e), q, tau, Gamma_2 without many(x, n)),
   )\
 
@@ -459,7 +573,7 @@ $]<fig-rules-curried>
     synthesize(Gamma_0, e_0, q_0, tau_0, Gamma'_0),
     each(i in 1..m),
     lookup(Delta, C_i^(n_i), arrow(many(tau, n_i), tau_0)),
-    synthesize(Gamma'_0\, many(arg(x, q_0, tau), n_i), e_i, q, tau, Gamma'_i),
+    synthesize(Gamma'_0 with many(arg(x, q_0, tau), n_i), e_i, q, tau, Gamma'_i),
     synthesize(Gamma_0, match(q_0, e_0, many(variant(C, many(x, n)) |-> e, m)), q, tau, sect.double_(i in 1..m) Gamma'_i without x_i),
   )\
 $]<fig-rules-arrity>
@@ -467,7 +581,9 @@ $]<fig-rules-arrity>
 #pagebreak()
 == Tests
 
-#lorem(250)
+#lorem(100)
+
+#lorem(150)
 
 $|space.med|space.hair|space.thin|space.sixth|space.quarter|space.third|space.en|space.quad|$
 
@@ -500,4 +616,6 @@ $
   Gamma_0 plus.circle Gamma_1 minus.circle Gamma_2 \
   Gamma_0 plus.circle Gamma_1 backslash.circle Gamma_2 \
   Gamma_0 compose Gamma_1 div Gamma_2 \
+  plus.arrow, plus.arrow.circle, plus.circle, plus.dot, plus.small, +, plus.square, plus.triangle \
+  minus.tilde, tilde.eq, tilde.basic, tilde, tilde.rev, tilde.op, tilde.equiv \
 $
