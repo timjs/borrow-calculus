@@ -43,12 +43,16 @@
 )
 #show par: set block(spacing: setup.font-leading)
 #set table(stroke: none)
+#show heading.where(level: 1): (it) => {
+  pagebreak()
+  it
+}
 
 // #let colour(colour, it) = if setup.coloured { text(fill: colour, it) } else { it }
 
-= Borrowing calculus
+Borrow calculus
 
-== Metavariables
+= Metavariables
 
 #stack(
   dir: ltr,
@@ -117,13 +121,12 @@ table(
   - $many(x, n)$ for an _ordered_ set of $x$es of length $n$, so $x_1, ..., x_n$.
   - $more(x)$ for an _unordered_ set of $x$es.
 
-#pagebreak()
-== Syntax
+= Syntax
 
 #grammar("Expressions", $e$,
   $x, y, z$, "variable",
   $borrow(many(x, ""), e)$, "borrow",
-  $box^? fun(many(arg(x, q, tau), n), e_0)$, "abstraction",
+  $lam(many(arg(x, q, tau), n), e_0)$, "abstraction",
   $apply(e_0, many(e, n))$, "application",
   $tuple(many(e, n))$, "tuple",
   $bind(q_0, tuple(many(x, n)), e_0, e)$, "split",
@@ -132,7 +135,7 @@ table(
 )
 
 #grammar("Values", $v$,
-  $cls(many(arg(x, q, tau), n), many(z, ""), e_0)$, "abstraction",
+  $cls(many(z, ""), many(arg(x, q, tau), n), e_0)$, "abstraction",
   $tuple(many(v, n))$, "tuple",
   $variant(C, many(v, n))$, "variant",
 )
@@ -143,9 +146,9 @@ table(
 )
 
 #grammar("Types", $tau$,
-  $arrow(many(tau^q, n), tau_0)$, "abstraction",
+  $arrow(many(qt(q, tau), n), tau_0)$, "abstraction",
   $tuple(many(tau, n))$, "tuple",
-  $variants(many(C^n (many(tau, n)), m))$, "variant",
+  $variants(many(variant(C, many(tau, n)), m))$, "variant",
   $List(tau)$, "list",
 )
 
@@ -169,8 +172,15 @@ table(
   $pi$, ${epsilon, 1}$, "parameter",
 )
 
-#pagebreak()
-== Typing
+#todo[with-binding: should be in $epsilon$ context? what is $q$? how to get $tau$?]
+$
+  shorthands(:=,
+    fun(x_0, many(arg(x, q, tau), n), e_0, e), bind(omega, x_0, lam(many(arg(x, q, tau), n), e_0), e), "function declaration",
+    with(x_0, apply(e_0, many(e, n)), e), apply(e_0, many(e, n)\, lam(arg(x_0, q, tau), e)), "with binding"
+  )
+$
+
+= Typing
 
 The algorithmic typing rules of $lambda^"borrow"$ are given below.
 The typing relation
@@ -180,7 +190,7 @@ $
 can be read as
 #quote[using expression $e$ with quantity $q$ can make use of all the bindings in context $Gamma$, which yields type $tau$ and a modified context $Gamma'$.]
 
-=== Variable lookup
+== Variable lookup
 
 Variable lookup comes in two flavours.
 Linear bindings with quantity $1$ are looked up and removed from the context as shown in rule $"Var"_1$.
@@ -226,7 +236,7 @@ $
   grayed(rules.var.pi\ rules.borrow.one)
 $
 
-=== Functions
+== Functions
 
 For function abstraction, we have three cases, one for each quantity.
 Depending on the quantity of the expression surroundings,
@@ -268,7 +278,7 @@ $
   rules.app.curried
 $
 
-=== Datatypes
+== Datatypes
 
 When creating datatypes, we need to store data so each subexpression in constructors needs to be owned.
 Although we allow creating datatypes in borrowed expression surroundings,
@@ -308,7 +318,7 @@ As after branching, contexts can only differ in removed linear bindings,
 merging two contexts is simply set intersection.
 #todo[Check this! Aren't we passing let-bound variables to the next argument?]
 
-=== Built-ins
+== Built-ins
 
 #shorthands(":",
   $"fold"_q$, $arrow(qt(q, List(tau_1)), qt(1, tau_2), qt(epsilon, arrow(qt(q, tau_1), qt(1, tau_2), tau_2)), tau_2)$, "fold list",
@@ -325,98 +335,29 @@ merging two contexts is simply set intersection.
   $"Result"(tau_1, tau_2)$, $variants("Wrong"(tau_1), "Right"(tau_2))$, "either type",
 )
 
+= Overview
 
-#pagebreak()
-== Arrity calculus
-
-#figure(caption: [Typing rules])[$
-  bold("Introduction")
+#let allrules(kind) = $
+  rules.abs.epsilon.at(kind) \
+  rules.abs.one.at(kind) \
+  rules.abs.omega.at(kind) \
+  rules.app.at(kind) \
   \
-
-  rule("Abs",
-    synthesize(Gamma_0^nu with many(arg(x, q, tau), n), e_0, owned(q), tau_0, Gamma_1),
-    synthesize(Gamma_0^epsilon with Gamma_0^nu, fun(many(arg(x, q, tau), n), e_0), q,
-      arrow(many(tau^q, n), tau_0), Gamma_0^epsilon with Gamma_1 without many(x, n)),
-    condition: exists z in "fv"(e_0) without many(x, n). space arg(z, 1, tau_z) in Gamma_0  => q = 1,
-  )\
-
-  rule("Pair",
-    each(i in 1..n),
-    synthesize(Gamma_i, e_i, owned(q), tau_i, Gamma_(i+1)),
-    synthesize(Gamma_1, tuple(many(e, n)), q, tuple(many(tau, n)), Gamma_(n+1)),
-  )\
-
-  rule("Con",
-    lookup(Delta, C, arrow(many(tau, n), tau_0)),
-    each(i in 1..n),
-    synthesize(Gamma_i, e_i, owned(q), tau_i, Gamma_(i+1)),
-    synthesize(Gamma_1, variant(C, many(e, n)), q, tau_0, Gamma_(n+1)),
-  )\
-
+  rules.pair.at(kind) \
+  rules.bind.at(kind) \
   \
-  bold("Elimination")
-  \
-
-  rule("App",
-    synthesize(Gamma_0, e_0, borrowed(q), arrow(many(tau^q, n), tau_0), Gamma_1),
-    each(i in 1..n),
-    synthesize(Gamma_i, e_i, q_i, tau_i, Gamma_(i+1)),
-    synthesize(Gamma_0, apply(e_0, many(e, n)), q, tau_0, Gamma_(n+1)),
-  )\
-
-  rule("Let",
-    synthesize(Gamma_0, e_0, q_0, tuple(many(tau, n)), Gamma_1),
-    synthesize(Gamma_1 with many(arg(x, q_0, tau), n), e, q, tau, Gamma_2),
-    synthesize(Gamma_0, bind(q_0, many(x, n), e_0, e), q, tau, Gamma_2 without many(x, n)),
-  )\
-
-  rule("Match",
-    synthesize(Gamma_0, e_0, q_0, tau_0, Gamma'_0),
-    each(i in 1..m),
-    lookup(Delta, C_i^(n_i), arrow(many(tau, n_i), tau_0)),
-    synthesize(Gamma'_0 with many(arg(x, q_0, tau), n_i), e_i, q, tau, Gamma'_i),
-    synthesize(Gamma_0, match(q_0, e_0, many(variant(C, many(x, n)) |-> e, m)), q, tau, sect.double_(i in 1..m) Gamma'_i without x_i),
-  )\
-$]<fig-rules-arrity>
-
-#pagebreak()
-== Tests
-
-#lorem(100)
-
-#lorem(150)
-
-$|space.med|space.hair|space.thin|space.sixth|space.quarter|space.third|space.en|space.quad|$
-
-$\
-|space| \
-|space.quad| 1\
-|space.en space.en| 2\
-|space.third space.third space.third| 3\
-|space.quarter space.quarter space.quarter space.quarter| 4\
-|space.sixth space.sixth space.sixth space.sixth space.sixth space.sixth| 6\
+  rules.con.at(kind) \
+  rules.match.at(kind) \
 $
 
-$\
-|thin|med|thick|quad|wide| \
-|wide| "wide = 2 quad"\
-|quad| "quad"\
-|thick thick thick| "3 thick"\
-|med med med med| "4 med"\
-|thin thin thin thin thin thin| "6 thin"\
-|quad| "quad"\
-$
+== Curried
 
 $
-  union.big.dot sect.big #place(dx: -1.125em, $=$) underline(sect.big) \
-  Gamma_0 union Gamma_1 without Gamma_2 \
-  Gamma_0 union.double Gamma_1 backslash Gamma_2 \
-  Gamma_0 union.double Gamma_1 slash.double Gamma_2 \
-  Gamma_0 union.plus Gamma_1 union.minus Gamma_2 \
-  Gamma_0 plus Gamma_1 minus Gamma_2 \
-  Gamma_0 plus.circle Gamma_1 minus.circle Gamma_2 \
-  Gamma_0 plus.circle Gamma_1 backslash.circle Gamma_2 \
-  Gamma_0 compose Gamma_1 div Gamma_2 \
-  plus.arrow, plus.arrow.circle, plus.circle, plus.dot, plus.small, +, plus.square, plus.triangle \
-  minus.tilde, tilde.eq, tilde.basic, tilde, tilde.rev, tilde.op, tilde.equiv \
+  allrules("curried")
+$
+
+== Uncurried
+
+$
+  allrules("uncurried")
 $

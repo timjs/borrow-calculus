@@ -56,11 +56,12 @@ $
 #let each(it) = $"for each" it$
 // #let with = math.dot
 #let with = $comma space$
+#let merge = $sect.double$
 
 #let borrow(args, body) = $""^args {body}$
-#let box = $keyword("box")$
-#let fun(pars, body) = $|pars| space body$
-#let cls(pars, vars, body) = $|pars|vars| space body$
+#let lam(pars, body) = $|pars| space body$
+#let cls(vars, pars, body) = $attach(tl: vars, |pars|) space body$
+#let fun(name, pars, body, cont) = $keyword("fun") space name(pars) space body; space cont$
 #let apply(func, args) = $func\(args\)$
 #let tuple(..items) = {
   let items = items.pos().join([,])
@@ -68,11 +69,12 @@ $
 }
 #let variant(ctor, args) = $ctor\(args\)$
 #let list(items) = $\[items\]$
-#let bind(quant, names, expr, body) = $keyword("let")^quant space names = expr; space body$
+#let bind(quant, names, body, cont) = $keyword("let")^quant space names = body; space cont$
 #let match(quant, scrut, arms) = $keyword("match")^quant space scrut space \{arms\}$
 //arms.pos().chunks(2).map(((pat, exp)) => pat |-> exp)$
 // #let fold(quant, list, accum, var1, var2, body) = $keyword("fold")^quant space list keyword("from") accum keyword("with") var1, var2 |-> body$
 #let fold(quant, list, accum, var1, var2, body) = $keyword("fold")^quant space list, accum, {var1, var2 |-> body}$
+#let with(name, body, cont) = $keyword("with") space name space <- body; space cont$
 
 #let arrow(..from, to) = {
   let from = from.pos().join($, space$)
