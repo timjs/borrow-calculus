@@ -1,28 +1,29 @@
 
 #let identity(it) = it
 
-#let todo(it) = text(fill: color.red, it)
-#let framed(it) = box(stroke: 1pt, inset: 4pt, it)
-#let grayed(it) = {
-  set text(fill: color.gray)
-  it
-}
+#let w(s) = v(s, weak: true)
+#let t = 2
+#let rt = calc.sqrt(t)
+#let rrt = calc.sqrt(rt)
 
-#let grammar(name, symbol, ..rules) = align(center, table(
+#let framed(it) = box(stroke: 1pt, inset: 4pt, it)
+#let grayed = text.with(fill: gray)
+
+#let grammar(name, symbol, ..rules) = table(
   columns: 4,
   align: (right, center, left, left),
-  symbol, $::=$, [], name + ":",
+  $symbol$, $::=$, [], name + ":",
   ..rules
     .pos()
     .chunks(2)
-    .map( ((rule, desc)) => ([], $|$, rule, "– " + desc) )
+    .map( ((rule, desc)) => ([], $|$, $rule$, "– " + desc) )
     .flatten()
-))
-#let constants(name, symbol, ..rules) = align(center, table(
+)
+#let constants(name, symbol, ..rules) = table(
   columns: 2,
   align: (right, left),
   ..rules
-))
+)
 #let rule(name, ..premises, conclusion, condition: []) = {
   let premises = premises.pos().join($wide$)
   $ #text(smallcaps(name)) space frac(premises, conclusion) space #condition $
@@ -30,8 +31,9 @@
 
 
 #let quantities = $cal(Q)$
-#let owned(it) = $ceil(it)$
-#let borrowed(it) = $floor(it)$
+#let lift(it) = $ceil(it)$
+#let lower(it) = $floor(it)$
+#let freeze(it) = $abs(it)$
 
 // #let input(it) = colour(blue, it)
 // #let output(it) = colour(red, it)
@@ -42,15 +44,18 @@
 #let synthesize(contextIn, expression, quantity , type, contextOut) = $
   input(contextIn) space meta(tack.r) space input(expression) space meta(:)^input(quantity) space output(type) space meta(~>) space output(contextOut)
 $
-#let lookup(env, elem, type) = $input(env) forces input(elem) : output(type)$
+#let lookup(env, elem, type) = $input(env) space meta(forces) space input(elem) space meta(:) space output(type)$
 
 #let keyword(it) = $sans(bold(#it))$
 // #let many(item, amount) = {
 //   let end = if amount == "" {$thin$} else {$thick$}
 //   $overline(thin item thin)^amount$
 // }
-#let more(item) = $overline(thin item thin)$
-#let many(item, amount) = $more(item)^amount$
+#let many(item, amount) = $overline(thin item thick)^amount$
+#let more(item) = $many(item, *)$
+#let most(item) = $many(item, +)$
+#let maybe(item) = $many(item, ?)$
+
 // #let many(item, "n") = $item_1, ..., item_amount$
 #let each(it) = $forall_(it)$
 #let each(it) = $"for each" it$
@@ -61,7 +66,7 @@ $
 #let borrow(args, body) = $""^args {body}$
 #let lam(pars, body) = $|pars| space body$
 #let cls(vars, pars, body) = $attach(tl: vars, |pars|) space body$
-#let fun(name, pars, body, cont) = $keyword("fun") space name(pars) space body; space cont$
+#let fun(name, pars, body, cont) = $keyword("fun")space name\(pars\) space body; space cont$
 #let apply(func, args) = $func\(args\)$
 #let tuple(..items) = {
   let items = items.pos().join([,])
@@ -69,12 +74,14 @@ $
 }
 #let variant(ctor, args) = $ctor\(args\)$
 #let list(items) = $\[items\]$
-#let bind(quant, names, body, cont) = $keyword("let")^quant space names = body; space cont$
-#let match(quant, scrut, arms) = $keyword("match")^quant space scrut space \{arms\}$
+#let val(quant, names, body, cont) = $keyword("val")^quant space names = body; space cont$
+#let split(quant, names, body, cont) = $keyword("split")^quant space names = body; space cont$
+#let match(quant, body, arms) = $keyword("match")^quant space body space \{arms\}$
 //arms.pos().chunks(2).map(((pat, exp)) => pat |-> exp)$
 // #let fold(quant, list, accum, var1, var2, body) = $keyword("fold")^quant space list keyword("from") accum keyword("with") var1, var2 |-> body$
 #let fold(quant, list, accum, var1, var2, body) = $keyword("fold")^quant space list, accum, {var1, var2 |-> body}$
-#let with(name, body, cont) = $keyword("with") space name space <- body; space cont$
+#let wilt = $keyword("wilt")$
+#let bind(name, body, cont) = $keyword("with") space name space <- body; space cont$
 
 #let arrow(..from, to) = {
   let from = from.pos().join($, space$)
@@ -97,6 +104,10 @@ $
 #let arg(name, quant, type) = $name attach(tr: quant, ":") type$
 #let qt(quant, it) = $attach(tl: quant, it)$
 
+#let code(it) = {
+  set align(left)
+  it
+}
 
 #let function(signature, ..rules) = table(
   columns: 3,
