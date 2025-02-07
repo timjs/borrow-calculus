@@ -1,0 +1,1252 @@
+structural type evaluate.Environment
+  = Wrap (Map Text Value)
+
+structural type Expression
+  = Match Quantity Expression (Text, Expression) (Text, Expression)
+  | Compare (Nat -> Nat -> Boolean) Expression Expression
+  | Borrow [Text] Expression
+  | Pair [Expression]
+  | Apply Expression [Expression]
+  | Abstract [(Quantity, Text, Type)] Expression
+  | Nil Type
+  | Fold Quantity Expression Expression Expression
+  | Split Quantity [Text] Expression Expression
+  | Construct Constructor Type Expression
+  | Nat Nat
+  | Cons Expression Expression
+  | Operate (Nat -> Nat -> Nat) Expression Expression
+  | Var Text
+  | Evaluated Value
+
+structural type Value
+  = Nat Nat
+  | Pair [Value]
+  | Cons Value Value
+  | Nil
+  | Abstract evaluate.Environment [Text] Expression
+  | Construct Constructor Value
+
+-- The definitions below no longer typecheck with the changes above.
+-- Please fix the errors and try `update` again.
+
+Expression.Bind : Quantity -> Text -> Expression -> Expression -> Expression
+Expression.Bind q x e = Split q [x] (Expression.Pair [e])
+
+Expression.Branch :
+  Quantity -> Expression -> Expression -> Expression -> Expression
+Expression.Branch q e0 e1 e2 = Match q e0 ("_", e2) ("_", e1)
+
+Expression.Define :
+  Text -> [(Quantity, Text, Type)] -> Expression -> Expression -> Expression
+Expression.Define f ps e c = Bind Omega f (Expression.Abstract ps e) c
+
+Expression.False : Expression
+Expression.False =
+  Expression.Construct Constructor.Left Type.Unit Expression.Unit
+
+Expression.Sequence : Expression -> Expression -> Expression
+Expression.Sequence = Bind Epsilon "_"
+
+Expression.True : Expression
+Expression.True =
+  Expression.Construct Constructor.Right Type.Unit Expression.Unit
+
+Expression.Unit : Expression
+Expression.Unit = Expression.Pair []
+
+Expression.display : Nat -> Expression -> Text
+Expression.display n = cases
+  Var x -> x
+  Borrow xs e ->
+    Text.glue
+      ["{", xs |> data.List.display id, "| ", Expression.display n e, "}"]
+  Split Omega [x] (Expression.Pair [Expression.Abstract ps e0]) e ->
+    unlines
+      [ unwords
+          [ define
+          , x
+          , ps |> data.List.display Parameter.display |> Text.between "(" ")"
+          ]
+      , Expression.display (n Nat.+ 1) e0
+      , Expression.display n e
+      ]
+  Expression.Abstract ps e ->
+    unwords
+      [ ps |> data.List.display Parameter.display |> Text.between "|" "|"
+      , Expression.display (n Nat.+ 1) e
+      ]
+  Apply e0 es ->
+    Text.glue
+      [ Expression.display 0 e0
+      , es |> data.List.display (Expression.display 0) |> Text.between "(" ")"
+      ]
+  Expression.Pair [e] -> Expression.display n e
+  Expression.Pair es ->
+    es |> data.List.display (Expression.display n) |> Text.between "(" ")"
+  Split q [x] e0 e ->
+    unlines
+      [ unwords
+          [keywords.bind, Quantity.count q, x, "=", Expression.display n e0]
+      , Expression.display n e
+      ]
+  Split q xs e0 e ->
+    unlines
+      [ unwords
+          [ keywords.bind
+          , Quantity.count q
+          , xs |> data.List.display id |> Text.between "(" ")"
+          , "="
+          , Expression.display n e0
+          ]
+      , Expression.display n e
+      ]
+  Expression.Nat n -> Nat.display n
+  Operate o e1 e2 ->
+    unwords [Expression.display n e1, operator o, Expression.display n e2]
+  Compare o e1 e2 ->
+    unwords [Expression.display n e1, comperator o, Expression.display n e2]
+  Match q e0 ("_", e2) ("_", e1) ->
+    unlines
+      [ Text.glue ["if^", Quantity.count q, " ", Expression.display 0 e0]
+      , unwords ["then", Expression.display 0 e1]
+      , unwords ["else", Expression.display 0 e2]
+      ]
+  Expression.Construct Constructor.Right (Product []) (Expression.Pair []) ->
+    "True"
+  Expression.Construct Constructor.Left (Product []) (Expression.Pair []) ->
+    "False"
+  Expression.Nil t -> "[]_" Text.++ Type.display t
+  Expression.Cons e1 e2 ->
+    unwords [Expression.display n e1, "::", Expression.display n e2]
+  _ -> todo "change to use `Pretty`"
+
+Expression.examples.args : Expression
+Expression.examples.args =
+  use Nat +
+  Define
+    "add"
+    [(Epsilon, "x", Type.Nat), (Epsilon, "y", Type.Nat)]
+    (Operate (+) (Var "x") (Var "y"))
+    (Apply (Var "add") [Bind Omega "a" (Expression.Nat 1) (Var "a"), Var "a"])
+
+Expression.examples.call : Quantity -> Quantity -> Expression
+Expression.examples.call q0 q1 =
+  use Type Nat
+  Expression.Abstract
+    [(Omega, "g", Arrow [(q1, Nat)] Nat), (q0, "x", Nat)]
+    (Apply (Var "g") [Var "x"])
+
+Expression.examples.call.borrow : Quantity -> Expression
+Expression.examples.call.borrow q =
+  use Type Nat
+  Expression.Abstract
+    [(Omega, "g", Arrow [(Epsilon, Nat)] Nat), (q, "x", Nat)]
+    (Borrow ["x"] (Apply (Var "g") [Var "x"]))
+
+Expression.examples.cons : Expression
+Expression.examples.cons =
+  use Quantity One
+  use Type Nat
+  Expression.Abstract
+    [(One, "x", Nat), (One, "xs", List Nat)]
+    (Expression.Cons (Var "x") (Var "xs"))
+
+Expression.examples.cons_app : Expression
+Expression.examples.cons_app =
+  use Quantity One
+  use Type Nat
+  Expression.Abstract
+    [ (One, "f", Arrow [(One, Nat)] Nat)
+    , (One, "x", Nat)
+    , (One, "xs", List Nat)
+    ]
+    (Expression.Cons (Apply (Var "f") [Var "x"]) (Var "xs"))
+
+Expression.examples.escape : Expression
+Expression.examples.escape =
+  use Type Nat
+  Expression.Abstract
+    [(Epsilon, "x", Nat), (Quantity.One, "y", Nat)]
+    (Expression.Pair [Var "x", Var "y"])
+
+Expression.examples.falses : Expression
+Expression.examples.falses =
+  use Quantity One
+  Apply (base.map One Epsilon One Bool) [examples.trues, base.not Epsilon]
+
+Expression.examples.list : Expression
+Expression.examples.list =
+  use Expression Cons
+  Cons
+    Expression.Unit
+    (Cons Expression.Unit (Cons Expression.Unit (Expression.Nil Type.Unit)))
+
+Expression.examples.pair.bind : Expression
+Expression.examples.pair.bind =
+  Expression.Pair [Bind Omega "a" (Expression.Nat 1) (Var "a"), Var "a"]
+
+Expression.examples.trues : Expression
+Expression.examples.trues =
+  use Expression Cons True
+  Cons True (Cons True (Cons True (Expression.Nil Bool)))
+
+Expression.freeVars : Expression -> Set Text
+Expression.freeVars = cases
+  Var x -> Set.singleton x
+  Borrow _ e -> freeVars e
+  Expression.Abstract ps e ->
+    freeVars e Set.\\ (ps |> List.map at2 |> Set.fromList)
+  Apply e0 es ->
+    freeVars e0 Set.\/ List.foldBalanced freeVars (Set.\/) Set.empty es
+  Expression.Nat _ -> Set.empty
+  Operate _ e1 e2 -> freeVars e1 Set.\/ freeVars e2
+  Compare _ e1 e2 -> freeVars e1 Set.\/ freeVars e2
+  Expression.Pair es -> es |> List.foldBalanced freeVars (Set.\/) Set.empty
+  Split _ xs e0 e -> freeVars e0 Set.\/ (freeVars e Set.\\ Set.fromList xs)
+  Expression.Construct _ _ e -> freeVars e
+  Match _ e0 (x1, e1) (x2, e2) ->
+    freeVars e0
+      Set.\/ (freeVars e1 Set.\\ Set.singleton x1)
+      Set.\/ (freeVars e2 Set.\\ Set.singleton x2)
+  Expression.Nil _ -> Set.empty
+  Expression.Cons e1 e2 -> freeVars e1 Set.\/ freeVars e2
+  Fold _ e1 e2 e3 ->
+    freeVars e1 Set.\/ freeVars e2 Set.\/ freeVars e3
+  Evaluated _ -> bug "There should be no `Evaluated` term in this `Expression`"
+
+test> Expression.freeVars.tests.closed =
+  test.verify do
+    use Quantity One
+    use Type Nat
+    e =
+      Each.each
+        [ examples.call One One
+        , examples.call.borrow One
+        , examples.cons
+        , dup One Nat
+        , base.identity One Nat
+        , base.not Epsilon
+        , examples.falses
+        , examples.trues
+        , base.map One Epsilon One Nat
+        ]
+    freeVars e |> ensureEqual Set.empty
+
+Expression.primitive.Add : Expression -> Expression -> Expression
+Expression.primitive.Add =
+  use Nat +
+  Operate (+)
+
+Expression.primitive.Div : Expression -> Expression -> Expression
+Expression.primitive.Div =
+  use Nat /
+  Operate (/)
+
+Expression.primitive.Eq : Expression -> Expression -> Expression
+Expression.primitive.Eq =
+  use Nat ==
+  Compare (==)
+
+Expression.primitive.Ge : Expression -> Expression -> Expression
+Expression.primitive.Ge =
+  use Nat <=
+  Compare (<=)
+
+Expression.primitive.Gt : Expression -> Expression -> Expression
+Expression.primitive.Gt =
+  use Nat <
+  Compare (<)
+
+Expression.primitive.Le : Expression -> Expression -> Expression
+Expression.primitive.Le =
+  use Nat >=
+  Compare (>=)
+
+Expression.primitive.Lt : Expression -> Expression -> Expression
+Expression.primitive.Lt =
+  use Nat >
+  Compare (>)
+
+Expression.primitive.Mul : Expression -> Expression -> Expression
+Expression.primitive.Mul =
+  use Nat *
+  Operate (*)
+
+Expression.primitive.Ne : Expression -> Expression -> Expression
+Expression.primitive.Ne =
+  use Nat !=
+  Compare (!=)
+
+Expression.primitive.Sub : Expression -> Expression -> Expression
+Expression.primitive.Sub =
+  use Nat -
+  Operate (-)
+
+Module.base : Module
+Module.base =
+  use Quantity One
+  use Type Nat
+  Module
+    [ "identity" ~> base.identity One Nat
+    , "dup" ~> dup Omega Nat
+    , "not" ~> base.not Epsilon
+    , "length" ~> base.length Epsilon Nat
+    , "map" ~> base.map One Epsilon One Nat
+    , "filter" ~> base.filter One Epsilon Epsilon Nat
+    , "reverse" ~> base.reverse One Nat
+    , "contains" ~> base.contains Epsilon Epsilon Nat
+    , "append" ~> base.append One One Nat
+    , "dedup" ~> dedup One Epsilon Nat
+    ]
+    None
+
+Module.base.append : Quantity -> Quantity -> Type -> Expression
+Module.base.append q_xs q_ys t =
+  Expression.Abstract
+    [(q_xs, "xs", List t), (q_ys, "ys", List t)]
+    (Bind
+      q_xs
+      "xs'"
+      (Apply (Var "reverse") [Var "xs"])
+      (Fold q_xs (Var "xs'") (Var "ys") (Abstract [(q_xs, "x", t), (One,"zs", List t)] (Expression.Cons (Var "x") (Var "zs")))))
+
+test> Module.base.append.check =
+  use Quantity One
+  use Type Nat
+  Module.synthesize
+    (Module
+      ["reverse" ~> base.reverse One Nat, "append" ~> base.append One One Nat]
+      (Some (Var "append")))
+    |> at2
+    |> verifyRight (Arrow [(One, List Nat), (One, List Nat)] (List Nat))
+
+Module.base.contains : Quantity -> Quantity -> Type -> Expression
+Module.base.contains q_xs q_y t =
+  use Expression False
+  Expression.Abstract
+    [(q_xs, "xs", List t), (q_y, "y", t)]
+    (Fold
+      q_xs
+      (Var "xs")
+      False
+      (Abstract [(q_xs,"x",t),(One, "z", Bool)] (Branch Epsilon (Eq (Var "x") (Var "y")) Expression.True False)))
+
+test> Module.base.contains.check =
+  t = Type.Nat
+  Module.synthesize
+    (Module
+      ["contains" ~> base.contains Epsilon Epsilon t] (Some (Var "contains")))
+    |> at2
+    |> verifyRight (Arrow [(Epsilon, List t), (Epsilon, t)] Bool)
+
+Module.base.dedup : Quantity -> Quantity -> Type -> Expression
+Module.base.dedup q_xs q_ys t =
+  use Expression Nil
+  Expression.Abstract
+    [(q_xs, "xs", List t), (q_ys, "ys", List t)]
+    (Fold
+      q_xs
+      (Var "xs")
+      (Nil t)
+      ( Abstract [(q_xs, "x", t),(One,"zs",List t)]
+      ( Branch
+          Epsilon
+          (Borrow ["x"] (Apply (Var "contains") [Var "ys", Var "x"]))
+          (Var "zs")
+          (Apply (Var "append") [Var "zs", Expression.Cons (Var "x") (Nil t)])
+      )))
+
+test> Module.base.dedup.check =
+  use Quantity One
+  use Type Nat
+  t = Nat
+  Module.synthesize
+    (Module
+      [ "contains" ~> base.contains Epsilon Epsilon Nat
+      , "reverse" ~> base.reverse One Nat
+      , "append" ~> base.append One One Nat
+      , "dedup" ~> dedup One Epsilon t
+      ]
+      (Some (Var "dedup")))
+    |> at2
+    |> verifyRight (Arrow [(One, List Nat), (Epsilon, List Nat)] (List Nat))
+
+Module.base.dup : Quantity -> Type -> Expression
+Module.base.dup q t =
+  Define "dup" [(q, "x", t)] (Expression.Pair [Var "x", Var "x"]) (Var "dup")
+
+test> Module.base.dup.check.epsilon =
+  synthesize.run (dup Epsilon Type.Nat)
+    |> at1
+    |> verifyWrong (VarBorrowed Quantity.One "x")
+
+test> Module.base.dup.check.omega =
+  use Type Nat
+  synthesize.run (dup Omega Nat)
+    |> at1
+    |> verifyRight (Arrow [(Omega, Nat)] (Product [Nat, Nat]))
+
+test> Module.base.dup.check.one =
+  use Quantity One
+  synthesize.run (dup One Type.Nat) |> at1 |> verifyWrong (VarUsed One "x")
+
+test> Module.base.dup.check.pair.one.omg =
+  synthesize.run (dup.pair Quantity.One Omega Type.Nat)
+    |> at1
+    |> verifyWrong (VarLinear Omega "x")
+
+Module.base.dup.pair : Quantity -> Quantity -> Type -> Expression
+Module.base.dup.pair q_x q_t t =
+  use Expression Pair
+  Expression.Abstract
+    [(q_x, "x", t)]
+    (Split
+      q_t
+      ["t", "_"]
+      (Pair [Var "x", Expression.Unit])
+      (Pair [Var "t", Var "t"]))
+
+test> Module.base.dup.pair.check.one.omg =
+  synthesize.run (dup.pair Quantity.One Omega Type.Nat)
+    |> at1
+    |> verifyWrong (VarLinear Omega "x")
+
+Module.base.filter : Quantity -> Quantity -> Quantity -> Type -> Expression
+Module.base.filter q_xs q_p q_x t =
+  Expression.Abstract
+    [(q_xs, "xs", List t), (q_p, "p", Arrow [(q_x, t)] Bool)]
+    (Fold q_xs (Var "xs") (Expression.Nil t)
+      ( Abstract [(q_xs, "x", t),(One, "zs",List t)]
+      ( Branch
+          q_x
+          (Borrow ["x"] (Apply (Var "p") [Var "x"]))
+          (Expression.Cons (Var "x") (Var "zs"))
+          (Var "zs")
+      )))
+
+test> Module.base.filter.check =
+  use Quantity One
+  use Type Nat
+  Module.synthesize
+    (Module
+      ["filter" ~> base.filter One Epsilon Epsilon Nat] (Some (Var "filter")))
+    |> at2
+    |> verifyRight
+         (Arrow
+           [(One, List Nat), (Epsilon, Arrow [(Epsilon, Nat)] Bool)] (List Nat))
+
+Module.base.identity : Quantity -> Type -> Expression
+Module.base.identity q t = Expression.Abstract [(q, "x", t)] (Var "x")
+
+test> Module.base.identity.check =
+  test.verify do
+    use Each each
+    use Quantity One
+    use Type Nat
+    t = each [Nat, Bool, List Nat, Arrow [(One, Nat), (One, Nat)] Nat]
+    q = each [One, Omega]
+    Module.synthesize
+      (Module ["identity" ~> base.identity q t] (Some (Var "identity")))
+      |> at2
+      |> ensureRight (Arrow [(q, t)] t)
+
+test> Module.base.identity.check.epsilon =
+  test.verify do
+    use Quantity One
+    use Type Nat
+    q = Epsilon
+    t = Each.each [Nat, Bool, List Nat, Arrow [(One, Nat), (One, Nat)] Nat]
+    Module.synthesize
+      (Module ["identity" ~> base.identity q t] (Some (Var "identity")))
+      |> at2
+      |> ensureWrong (VarBorrowed One "x")
+
+Module.base.length : Quantity -> Type -> Expression
+Module.base.length q_xs t =
+  Expression.Abstract
+    [(q_xs, "xs", List t)]
+    (Fold q_xs (Var "xs") (Expression.Nat 0)
+      (Abstract [(q_xs,"x",t),(One,"l",Nat)] (Borrow ["l"] (Add (Var "x") (Var "l")))))
+
+test> Module.base.length.check =
+  test.verify do
+    Module.synthesize
+      (Module ["length" ~> base.length Epsilon Type.Nat] (Some (Var "length")))
+      |> at2
+      |> ensureRight (Arrow [(Epsilon, List Type.Nat)] Type.Nat)
+
+Module.base.map : Quantity -> Quantity -> Quantity -> Type -> Expression
+Module.base.map q_xs q_f q_x t =
+  Expression.Abstract
+    [(q_xs, "xs", List t), (q_f, "f", Arrow [(q_x, t)] t)]
+    (Fold q_xs (Var "xs") (Expression.Nil t) (Abstract [(q_xs,"x",t),(One,"zs",List t)]( Expression.Cons (Apply (Var "f") [Var "x"]) (Var "zs"))))
+
+test> Module.base.map.check =
+  use Quantity One
+  use Type Nat
+  Module.synthesize
+    (Module ["map" ~> base.map One Epsilon One Nat] (Some (Var "map")))
+    |> at2
+    |> verifyRight
+         (Arrow [(One, List Nat), (Epsilon, Arrow [(One, Nat)] Nat)] (List Nat))
+
+Module.base.max : Quantity -> Expression
+Module.base.max q =
+  use Type Nat
+  Define
+    "max"
+    [(q, "x", Nat), (q, "y", Nat)]
+    (Branch
+      q
+      (Borrow ["x", "y"] (Gt (Var "x") (Var "y")))
+      (Bind Quantity.One "a" (Var "x") (Var "a"))
+      (Var "y"))
+    (Var "max")
+
+test> Module.base.max.check =
+  test.verify do
+    synthesize.run (base.max Quantity.One)
+      |> at1
+      |> ensureRight
+           (Arrow [(Quantity.One, Type.Nat), (Quantity.One, Type.Nat)] Type.Nat)
+
+test> Module.base.max.fail = test.verify do
+  q = Each.each [Epsilon, Omega]
+  synthesize.run (base.max q) |> at1 |> ensureWrong (NoBorrowing "x")
+
+Module.base.not : Quantity -> Expression
+Module.base.not q_x =
+  Expression.Abstract
+    [(q_x, "x", Bool)] (Branch q_x (Var "x") Expression.False Expression.True)
+
+test> Module.base.not.check =
+  use Quantity One
+  Module.synthesize (Module ["not" ~> base.not One] (Some (Var "not")))
+    |> at2
+    |> verifyRight (Arrow [(One, Bool)] Bool)
+
+Module.base.rebind : Quantity -> Quantity -> Type -> Expression
+Module.base.rebind q_x q_y t =
+  Define
+    "rebind" [(q_x, "x", t)] (Bind q_y "y" (Var "x") (Var "y")) (Var "rebind")
+
+Module.base.reverse : Quantity -> Type -> Expression
+Module.base.reverse q_xs t =
+  Expression.Abstract
+    [(q_xs, "xs", List t)]
+    (Fold q_xs (Var "xs") (Expression.Nil t)
+      (Abstract [(q_xs,"x",t),(One,"zs",List t)]( Expression.Cons (Var "x") (Var "zs"))))
+
+test> Module.base.reverse.check =
+  use Quantity One
+  use Type Nat
+  Module.synthesize
+    (Module ["reverse" ~> base.reverse One Nat] (Some (Var "reverse")))
+    |> at2
+    |> verifyRight (Arrow [(One, List Nat)] (List Nat))
+
+Module.ensamble : Module -> Expression -> Module
+Module.ensamble m e =
+  (Module ds _) = m
+  Module ds (Some e)
+
+Module.examples.hello : Module
+Module.examples.hello = withBase Expression.True
+
+Module.examples.length : Quantity -> Type -> Module
+Module.examples.length q_n t =
+  use Quantity One
+  use Type Nat
+  Module
+    [ "length" ~> base.length Epsilon t
+    , "map" ~> base.map One Epsilon One Nat
+    , "identity" ~> base.identity One Nat
+    ]
+    (Some
+      (Bind
+        One
+        "as"
+        (Expression.Nil t)
+        (Bind
+          q_n
+          "n"
+          (Borrow ["as"] (Apply (Var "length") [Var "as"]))
+          (Bind
+            One "bs" (Apply (Var "map") [Var "as", Var "identity"]) (Var "n")))))
+
+test> Module.examples.length.check =
+  test.verify do
+    q = Epsilon
+    t = Type.Nat
+    Module.synthesize (examples.length q t)
+      |> at2
+      |> ensureWrong (VarBorrowed Quantity.One "n")
+
+Module.synthesize :
+  Module -> (Option Text, Either synthesize.Error Type, Context)
+Module.synthesize m =
+  (l, (r, g)) = Mark.last None do synthesize.run (translate m)
+  (l, r, g)
+
+Module.synthesize.display : Module -> (Option Text, Text, Text)
+Module.synthesize.display m =
+  (l, (r, g)) = Mark.last None do synthesize.run.display (translate m)
+  (l, r, g)
+
+Module.translate : Module ->{Mark Text} Expression
+Module.translate = cases
+  Module ds mo ->
+    match mo with
+      Some m ->
+        List.foldRight
+          (cases (x, e), c -> Bind Omega (markAndReturn! x) e c) m ds
+      None -> todo "for now, modules need a main function"
+
+Module.withBase : Expression -> Module
+Module.withBase = ensamble Module.base
+
+Value.False : Value
+Value.False = Value.Construct Constructor.Left Value.Unit
+
+Value.True : Value
+Value.True = Value.Construct Constructor.Right Value.Unit
+
+Value.Unit : Value
+Value.Unit = Value.Pair []
+
+Value.display : Value -> Text
+Value.display = cases
+  Value.Abstract g xs _ ->
+    Text.join "" ["fn(", Text.join ", " xs, ") _ with ", Environment.display g]
+  Value.Nat n -> Nat.toText n
+  Value.Pair vs ->
+    vs |> data.List.display Value.display |> Text.between "(" ")"
+  Value.Construct Constructor.Left (Value.Pair []) -> "False"
+  Value.Construct Constructor.Right (Value.Pair []) -> "True"
+  Value.Construct c v -> unwords [Constructor.display c, Value.display v]
+  Value.Nil -> "[]"
+  Value.Cons v1 v2 -> unwords [Value.display v1, "::", Value.display v2]
+
+Value.ofBool : Boolean -> Value
+Value.ofBool = cases
+  true  -> Value.True
+  false -> Value.False
+
+evaluate : Environment -> Expression ->{Throw evaluate.Error} Value
+evaluate = go
+
+evaluate.Environment.display : Environment -> Text
+evaluate.Environment.display = cases
+  Environment.Wrap m ->
+    m
+      |> Map.foldMap
+           (Text.++) (x v -> Text.join "" [x, " |-> ", Value.display v, ", "])
+      |> Optional.getOrElse ""
+      |> Text.between "{" "}"
+
+evaluate.Environment.empty : Environment
+evaluate.Environment.empty = Environment.Wrap Map.empty
+
+evaluate.Environment.extend : Environment -> Environment -> Environment
+evaluate.Environment.extend g1 g2 =
+  use Environment Wrap
+  (Wrap m1) = g1
+  (Wrap m2) = g2
+  Wrap (Map.union m1 m2)
+
+evaluate.Environment.insert : Text -> Value -> Environment -> Environment
+evaluate.Environment.insert k v = cases
+  Environment.Wrap m -> Environment.Wrap (Map.insert k v m)
+
+evaluate.Environment.lookup : Text -> Environment -> Option Value
+evaluate.Environment.lookup k = cases Environment.Wrap m -> Map.get k m
+
+evaluate.Environment.make : [Text] -> [Value] -> Environment
+evaluate.Environment.make xs vs =
+  List.zip xs vs |> Map.fromList |> Environment.Wrap
+
+evaluate.Error.display : evaluate.Error -> Text
+evaluate.Error.display = cases
+  FunctionNeeded v -> unwords ["function needed, but given", Value.display v]
+  evaluate.Error.NatNeeded v ->
+    unwords ["natural number needed, but given", Value.display v]
+  ProductNeeded v -> unwords ["product needed, but given", Value.display v]
+  SumNeeded v -> unwords ["sum needed, but given", Value.display v]
+  evaluate.Error.ListNeeded v ->
+    unwords ["list needed, but given", Value.display v]
+  evaluate.Error.VarDoesntExist x -> unwords ["variable", x, "doesn't exist"]
+
+evaluate.go : Environment -> Expression ->{Throw evaluate.Error} Value
+evaluate.go g = cases
+  Var x1                       ->
+    match Environment.lookup x1 g with
+      Some v1 -> v1
+      None    -> throw <| evaluate.Error.VarDoesntExist x1
+  Borrow _ e0                  -> evaluate g e0
+  Expression.Abstract ps e     -> Value.Abstract g (ps |> List.map at2) e
+  Apply e0 es                  ->
+    use Environment extend
+    v0 = evaluate g e0
+    match v0 with
+      Value.Abstract g_c ps e ->
+        vs = es |> List.map (evaluate g)
+        g_ps = Environment.make ps vs
+        g_e = g |> extend g_c |> extend g_ps
+        evaluate g_e e
+      _                       -> throw <| FunctionNeeded v0
+  Expression.Nat n             -> Value.Nat n
+  Operate f e1 e2              -> evaluate.primitive f Value.Nat g e1 e2
+  Compare f e1 e2              -> evaluate.primitive f ofBool g e1 e2
+  Expression.Pair es           ->
+    vs = es |> List.map (evaluate g)
+    Value.Pair vs
+  Split _ xs e0 e              ->
+    v0 = evaluate g e0
+    match v0 with
+      Value.Pair vs ->
+        g' = g |> Environment.extend (Environment.make xs vs)
+        evaluate g' e
+      _             -> throw <| ProductNeeded v0
+  Expression.Construct c1 _ e1 ->
+    v1 = evaluate g e1
+    Value.Construct c1 v1
+  Match _ e0 (x1, e1) (x2, e2) ->
+    use Environment insert
+    use Value Construct
+    v0 = evaluate g e0
+    match v0 with
+      Construct Constructor.Left v1  ->
+        g' = insert x1 v1 g
+        evaluate g' e1
+      Construct Constructor.Right v2 ->
+        g' = insert x2 v2 g
+        evaluate g' e2
+      _                              -> throw <| SumNeeded v0
+  Expression.Nil _             -> Value.Nil
+  Expression.Cons e1 e2        ->
+    v1 = evaluate g e1
+    v2 = evaluate g e2
+    Value.Cons v1 v2
+  Fold q1 e1 e2 e3 -> --(x1, x2, e3)   ->
+    use Environment insert
+    v1 = evaluate g e1
+    match v1 with
+      Value.Nil       -> evaluate g e2
+      Value.Cons v vs -> evaluate g (Fold q1 (Evaluated vs) (Evaluated (evaluate g (Apply e3 [Evaluated v, e2]))) e3)
+      _               -> throw <| evaluate.Error.ListNeeded v1
+  Evaluated v1        -> v1
+
+evaluate.primitive :
+  (Nat -> Nat ->{g1} a)
+  -> (a ->{g2} Value)
+  -> Environment
+  -> Expression
+  -> Expression
+  ->{g1, g2, Throw evaluate.Error} Value
+evaluate.primitive f l g e1 e2 = match evaluate g e1 with
+  Value.Nat v1 ->
+    match evaluate g e2 with
+      Value.Nat v2 -> l (f v1 v2)
+      v2           -> throw <| evaluate.Error.NatNeeded v2
+  v1           -> throw <| evaluate.Error.NatNeeded v1
+
+evaluate.run : Expression -> Either evaluate.Error Value
+evaluate.run e = toResult do evaluate Environment.empty e
+
+evaluate.run.display : Expression -> Either Text Text
+evaluate.run.display =
+  evaluate.run >> Either.bimap evaluate.Error.display Value.display
+
+test> evaluate.tests.falses =
+  use Value Cons False
+  evaluate.run examples.falses
+    |> verifyRight (Cons False (Cons False (Cons False Value.Nil)))
+
+test> evaluate.tests.not =
+  evaluate.run (Apply (base.not Epsilon) [Expression.False])
+    |> verifyRight Value.True
+
+test> evaluate.tests.trues =
+  use Value Cons True
+  evaluate.run examples.trues
+    |> verifyRight (Cons True (Cons True (Cons True Value.Nil)))
+
+synthesize :
+  Context
+  -> Expression
+  -> Quantity
+  ->{Throw (synthesize.Error, Context)} (Type, Context)
+synthesize g0 e q =
+  match e with
+    Var x1 ->
+      match (q, g0 |> Context.lookup x1) with
+        (Zero, _) -> bug "variable asked with quantity zero"
+        (Quantity.One, Some (Quantity.One, t)) ->
+          (t, g0 |> Context.set Zero x1)
+        (Epsilon, Some (Epsilon, t)) -> (t, g0)
+        (Omega, Some (Omega, t)) -> (t, g0)
+        (Quantity.One, Some (Omega, t)) -> (t, g0)
+        (Epsilon, Some (Omega, t)) -> (t, g0)
+        (_, Some (q', _)) -> throw (VarMismatch q q' x1, g0)
+        (_, None) -> throw (synthesize.Error.VarDoesntExist x1, g0)
+    Borrow xs e0 ->
+      g0' = g0 |> borrows xs
+      let
+        (t0, g1) = synthesize g0' e0 (lift q)
+        (t0, g1 |> resets xs)
+    Expression.Abstract ps e0 ->
+      use Context \/ \\ filter make
+      use List map
+      use Quantity One
+      tn = map (cases (q, _, t) -> (q, t)) ps
+      xs = map (cases (_, x, t) -> x) ps
+      match q with
+        Epsilon ->
+          g0' = filter Epsilon g0 \/ filter Omega g0 \/ make ps
+          let
+            (t0, g1) = synthesize g0' e0 One
+            (Arrow tn t0, filter One g0 \/ g1 \\ xs)
+        One     ->
+          g0' = filter One g0 \/ filter Omega g0 \/ make ps
+          let
+            (t0, g1) = synthesize g0' e0 One
+            (Arrow tn t0, filter Epsilon g0 \/ g1 \\ xs)
+        Omega   ->
+          g0' = filter Omega g0 \/ make ps
+          let
+            (t0, g1) = synthesize g0' e0 One
+            (Arrow tn t0, filter Epsilon g0 \/ filter One g0 \/ g1 \\ xs)
+        Zero    -> bug "lambda asked with quantity zero"
+    Apply e0 es ->
+      match synthesize g0 e0 Epsilon with
+        (Arrow qts t0, g1) ->
+          eqts = List.zip! (n m -> (ArgSize m n, g0)) es qts
+          f = cases
+            (gi_p, gi), (ei, (qi, ti)) ->
+              (ti', gi_n) = synthesize (gi_p /\ gi) ei qi
+              if ti' === ti then (gi, gi_n)
+              else throw (ArgMismatch ti ti', gi_n)
+          let
+            (_, gn_n) = List.foldLeft f (g0, g1) eqts
+            (t0, gn_n)
+        (t', g') -> throw (FunNeeded t', g')
+    Expression.Nat _ -> (Type.Nat, g0)
+    Operate _ e1 e2 -> synthesize.primitive Type.Nat g0 e1 e2 q
+    Compare _ e1 e2 -> synthesize.primitive Bool g0 e1 e2 q
+    Expression.Pair es ->
+      use List :+
+      f = cases
+        ((gi_p, gi), ts), ei ->
+          (ti, gi_n) = synthesize (gi_p /\ gi) ei q
+          ((gi, gi_n), ts :+ ti)
+      let
+        ((_, gn_n), ts) = List.foldLeft f ((g0, g0), []) es
+        (Product ts, gn_n)
+    Split q0 xs e0 e ->
+      match synthesize g0 e0 q0 with
+        (Product ts, g1) ->
+          g1' = g1 |> Context.extend q0 xs ts
+          synthesize g1' e q
+        (t', g')         -> throw (SplitMismatch t', g')
+    Expression.Construct c1 t2 e ->
+      (t1, g1) = synthesize g0 e (lift q)
+      (Type.sum c1 t1 t2, g1)
+    Match q0 e0 (x1, e1) (x2, e2) ->
+      match synthesize g0 e0 q0 with
+        (Sum t1 t2, g') ->
+          (t1', g1') = synthesize (g' |> Context.insert x1 (q0, t1)) e1 q
+          (t2', g2') = synthesize (g' |> Context.insert x2 (q0, t2)) e2 q
+          if t1' === t2' then (t1', g1' /\ g2')
+          else throw (BranchMismatch t1' t2', g2')
+        (t', g') -> throw (MatchMismatch t', g')
+    Expression.Nil t0 -> (List t0, g0)
+    Expression.Cons e1 e2 ->
+      (t1, g') = synthesize g0 e1 (lift q)
+      match synthesize g' e2 (lift q) with
+        (List t1', g'') ->
+          if t1 === t1' then (List t1, g'')
+          else throw (ConsMismatch t1 t1', g'')
+        (t1', g') -> throw (synthesize.Error.ListNeeded e2 t1', g')
+    Fold q1 e1 e2 e3 ->
+      g1 = g0
+      match synthesize g1 e1 q1 with
+        (List t1, g2) ->
+          q2 = Quantity.One
+          (t2, g3) = synthesize g2 e2 q2
+          (t3, g4) = synthesize g3 e3 q
+          match t3 with
+            Arrow qts t0 -> if qts === [(q1,t1), (q2,t2)] && t0 === t2
+              then (t2, g4)
+              else throw (FoldMismatch t2 t2, g4)
+            _ -> throw (FunNeeded t3, g4)
+        (t1, g') -> throw (synthesize.Error.ListNeeded e1 t1, g')
+    Evaluated _ ->
+      bug "There shouldn't be an evaluated value in this expression"
+
+(synthesize.Context./\) :
+  Context -> Context ->{Throw (synthesize.Error, Context)} Context
+(synthesize.Context./\) = Context.merge
+
+(synthesize.Context.\/) :
+  Context -> Context ->{Throw (synthesize.Error, Context)} Context
+(synthesize.Context.\/) = Context.union
+
+synthesize.Context.borrow :
+  Text -> Context ->{Throw (synthesize.Error, Context)} Context
+synthesize.Context.borrow x g =
+  Context.adjust
+    (cases
+      (q, t) ->
+        if q === Quantity.One then (Epsilon, t) else throw (NoBorrowing x, g))
+    x
+    g
+
+synthesize.Context.borrows :
+  [Text] -> Context ->{Throw (synthesize.Error, Context)} Context
+synthesize.Context.borrows = modifies Context.borrow
+
+synthesize.Context.lookup! :
+  Text -> Context ->{Throw synthesize.Error} (Quantity, Type)
+synthesize.Context.lookup! x = cases
+  Context.Wrap m -> m |> Map.getOrThrow (synthesize.Error.VarDoesntExist x) x
+
+synthesize.Context.merge :
+  Context -> Context ->{Throw (synthesize.Error, Context)} Context
+synthesize.Context.merge g1 g2 =
+  use Context Wrap
+  (Wrap m1) = g1
+  (Wrap m2) = g2
+  m' = Map.difference m1 m2 |> Map.delete "_"
+  if Map.isEmpty m' then Wrap (Map.intersect m2 m1)
+  else throw (ContextMismatch g1 g2, g1)
+
+synthesize.Context.reset :
+  Text -> Context ->{Throw (synthesize.Error, Context)} Context
+synthesize.Context.reset x g =
+  Context.adjust
+    (cases
+      (q, t) ->
+        if q === Epsilon then (Quantity.One, t) else throw (NoReset x, g))
+    x
+    g
+
+synthesize.Context.resets :
+  [Text] -> Context ->{Throw (synthesize.Error, Context)} Context
+synthesize.Context.resets = modifies reset
+
+synthesize.Context.union :
+  Context -> Context ->{Throw (synthesize.Error, Context)} Context
+synthesize.Context.union g1 g2 =
+  use Context Wrap
+  (Wrap m1) = g1
+  (Wrap m2) = g2
+  i = Map.intersect m1 m2 |> Map.delete "_"
+  u = Wrap (Map.union m1 m2)
+  if Map.isEmpty i then u else throw (VarsShadowed (Map.keys i) u, g1)
+
+synthesize.Error.VarBorrowed : Quantity -> Text -> synthesize.Error
+synthesize.Error.VarBorrowed q = VarMismatch q Epsilon
+
+synthesize.Error.VarLinear : Quantity -> Text -> synthesize.Error
+synthesize.Error.VarLinear q = VarMismatch q Quantity.One
+
+synthesize.Error.VarUnrestricted : Quantity -> Text -> synthesize.Error
+synthesize.Error.VarUnrestricted q = VarMismatch q Omega
+
+synthesize.Error.VarUsed : Quantity -> Text -> synthesize.Error
+synthesize.Error.VarUsed q = VarMismatch q Zero
+
+synthesize.Error.display : synthesize.Error -> Text
+synthesize.Error.display = cases
+  synthesize.Error.VarDoesntExist x ->
+    unwords ["variable", x, "does not exist"]
+  VarMismatch q_asked q_provided x ->
+    unwords
+      [ "variable"
+      , x
+      , "is asked for"
+      , Quantity.display q_asked
+      , "but it is"
+      , Quantity.display q_provided
+      ]
+  FunNeeded t -> unwords ["type", Type.display t, "is not a function type"]
+  ArgMismatch t_asked t_provided ->
+    unwords
+      [ "argument needs to be of type"
+      , Type.display t_asked
+      , "but"
+      , Type.display t_provided
+      , "is given"
+      ]
+  ArgSize n_asked n_given ->
+    unwords
+      [ "function needs"
+      , Nat.toText n_asked
+      , "arguments, but"
+      , Nat.toText n_given
+      , "were given"
+      ]
+  NoWeakening -> "cannot apply weakening"
+  NoDerivations -> "no derivations possible"
+  NoBorrowing x ->
+    unwords ["variable", x, "cannot be borrowed, because it isn't linear"]
+  NoReset x ->
+    unwords ["variable", x, "cannot be reset, because it isn't borrowed"]
+  DifferentDerivations ts ->
+    "multiple derivations possible: "
+      Text.++ (ts |> List.map Type.display |> Text.join ", ")
+  SplitMismatch t ->
+    unwords ["split needs a product type, but was given a", Type.display t]
+  MatchMismatch t ->
+    unwords ["match needs a sum type, but was given a", Type.display t]
+  BranchMismatch t1 t2 ->
+    unwords
+      [ "match needs each branch to have the same type, but the first branch was a"
+      , Type.display t1
+      , "and the second a"
+      , Type.display t2
+      ]
+  ContextMismatch g1 g2 ->
+    unwords
+      [ "match needs each branch to return the same context, but the first branch returned"
+      , toDebugText g1
+      , "and the second returned"
+      , toDebugText g2
+      ]
+  ConsMismatch t_element t_list ->
+    unwords
+      [ "type of the element added"
+      , Type.display t_element
+      , "should be the same as the type of elements in the list of"
+      , Type.display t_list
+      ]
+  synthesize.Error.ListNeeded _ t ->
+    unwords
+      ["the expression", "_", "needs to be list, but it is a", Type.display t]
+  FoldMismatch t_start t_body ->
+    unwords
+      [ "type of the start element"
+      , Type.display t_start
+      , "should be the same as the return type of the body"
+      , Type.display t_body
+      ]
+  synthesize.Error.NatNeeded t ->
+    unwords
+      [ "primitive operations need to be of type Nat, but here a"
+      , Type.display t
+      , "is given"
+      ]
+  EvaluatedValue v -> unwords ["unexpected evaluated value:", Value.display v]
+  QuantityMismatch q_asked q_given ->
+    unwords
+      [ "quantity needs to be less then"
+      , Quantity.display q_asked
+      , "but given quantity is"
+      , Quantity.display q_given
+      ]
+  AbstractionError vs ->
+    unwords
+      [ "cannot use a closure linearly when it captures linear variables"
+      , Set.display id vs
+      ]
+  VarShadowed x g ->
+    unwords
+      [ "variable"
+      , Text.between "`" "`" x
+      , "is shadowed in context"
+      , Context.display g
+      ]
+  VarsShadowed xs g ->
+    unwords
+      [ "variables"
+      , data.List.display id xs |> Text.between "`" "`"
+      , "are shadowed in context"
+      , Context.display g
+      ]
+
+synthesize.each :
+  Context
+  -> Expression
+  -> Quantity
+  ->{Each, Throw (synthesize.Error, Context)} (Type, Context)
+synthesize.each g e q =
+  g' = Each.each [g, borrowAll g]
+  synthesize g' e q
+
+synthesize.primitive :
+  Type
+  -> Context
+  -> Expression
+  -> Expression
+  -> Quantity
+  ->{Throw (synthesize.Error, Context)} (Type, Context)
+synthesize.primitive r g0 e1 e2 q = match synthesize g0 e1 Epsilon with
+  (Type.Nat, g1) ->
+    match synthesize g1 e2 Epsilon with
+      (Type.Nat, g3) -> (r, g3)
+      (t2', g')      -> throw (synthesize.Error.NatNeeded t2', g')
+  (t1', g')      -> throw (synthesize.Error.NatNeeded t1', g')
+
+synthesize.run : Expression -> (Either synthesize.Error Type, Context)
+synthesize.run e =
+  (toResult do synthesize Context.empty e Quantity.One) |> (cases
+    Wrong (e, g)        -> (Wrong e, g)
+    Either.Right (t, g) -> (Either.Right t, g))
+
+synthesize.run.display : Expression -> (Text, Text)
+synthesize.run.display =
+  synthesize.run
+    >> mapPair
+      (Either.display synthesize.Error.display Type.display, Context.display)
+
+test> synthesize.tests.args.fail =
+  synthesize.run args
+    |> at1
+    |> verifyWrong (synthesize.Error.VarDoesntExist "a")
+
+test> synthesize.tests.call =
+  test.verify do
+    use Type Nat
+    q = Each.each [Epsilon, Quantity.One]
+    synthesize.run (examples.call Omega q)
+      |> at1
+      |> ensureRight (Arrow [(Omega, Arrow [(q, Nat)] Nat), (Omega, Nat)] Nat)
+
+test> synthesize.tests.call.borrow =
+  test.verify do
+    synthesize.run (examples.call.borrow Quantity.One)
+      |> at1
+      |> ensureRight
+           (Arrow
+             [ (Omega, Arrow [(Epsilon, Type.Nat)] Type.Nat)
+             , (Quantity.One, Type.Nat)
+             ]
+             Type.Nat)
+
+test> synthesize.tests.call.borrow.nop =
+  test.verify do
+    q = Each.each [Epsilon, Omega]
+    synthesize.run (examples.call.borrow q)
+      |> at1
+      |> ensureWrong (NoBorrowing "x")
+
+test> synthesize.tests.call.fail =
+  test.verify do
+    q = Each.each [Omega, Epsilon]
+    synthesize.run (examples.call Quantity.One q)
+      |> at1
+      |> ensureWrong (VarLinear q "x")
+
+test> synthesize.tests.call.fail.borrowed =
+  test.verify do
+    q = Each.each [Omega, Quantity.One]
+    synthesize.run (examples.call Epsilon q)
+      |> at1
+      |> ensureWrong (VarBorrowed q "x")
+
+test> synthesize.tests.call.same =
+  test.verify do
+    use Type Nat
+    q = Each.each [Omega, Quantity.One, Epsilon]
+    synthesize.run (examples.call q q)
+      |> at1
+      |> ensureRight (Arrow [(Omega, Arrow [(q, Nat)] Nat), (q, Nat)] Nat)
+
+test> synthesize.tests.escape.nop =
+  synthesize.run examples.escape
+    |> at1
+    |> verifyWrong (VarMismatch Quantity.One Epsilon "x")
+
+test> synthesize.tests.pair.fail =
+  synthesize.run pair.bind
+    |> at1
+    |> verifyWrong (synthesize.Error.VarDoesntExist "a")
+
+test> synthesize.tests.rebind.eps.eps =
+  synthesize.run (rebind Epsilon Epsilon Type.Nat)
+    |> at1
+    |> verifyWrong (VarBorrowed Quantity.One "y")
+
+test> synthesize.tests.rebind.eps.omg =
+  synthesize.run (rebind Epsilon Omega Type.Nat)
+    |> at1
+    |> verifyWrong (VarBorrowed Omega "x")
+
+test> synthesize.tests.rebind.eps.one =
+  use Quantity One
+  synthesize.run (rebind Epsilon One Type.Nat)
+    |> at1
+    |> verifyWrong (VarBorrowed One "x")
+
+test> synthesize.tests.rebind.omg.eps =
+  synthesize.run (rebind Omega Epsilon Type.Nat)
+    |> at1
+    |> verifyWrong (VarBorrowed Quantity.One "y")
+
+test> synthesize.tests.rebind.omg.omg =
+  use Type Nat
+  synthesize.run (rebind Omega Omega Nat)
+    |> at1
+    |> verifyRight (Arrow [(Omega, Nat)] Nat)
+
+test> synthesize.tests.rebind.omg.one =
+  use Type Nat
+  synthesize.run (rebind Omega Quantity.One Nat)
+    |> at1
+    |> verifyRight (Arrow [(Omega, Nat)] Nat)
+
+test> synthesize.tests.rebind.one.eps =
+  synthesize.run (rebind Quantity.One Epsilon Type.Nat)
+    |> at1
+    |> verifyWrong (VarLinear Epsilon "x")
+
+test> synthesize.tests.rebind.one.omg =
+  synthesize.run (rebind Quantity.One Omega Type.Nat)
+    |> at1
+    |> verifyWrong (VarLinear Omega "x")
+
+test> synthesize.tests.rebind.one.one =
+  use Quantity One
+  use Type Nat
+  synthesize.run (rebind One One Nat)
+    |> at1
+    |> verifyRight (Arrow [(One, Nat)] Nat)
+
+t2 : Expression
+t2 = rebind Quantity.One Epsilon Type.Nat
+
+structural type Module
+  = Module [(Text, Expression)] (Option Expression)
+
+type evaluate.Error
+  = NatNeeded Value
+  | FunctionNeeded Value
+  | ProductNeeded Value
+  | SumNeeded Value
+  | ListNeeded Value
+  | VarDoesntExist Text
+
+type synthesize.Error
+  = VarsShadowed [Text] Context
+  | ContextMismatch Context Context
+  | QuantityMismatch Quantity Quantity
+  | FunNeeded Type
+  | SplitMismatch Type
+  | MatchMismatch Type
+  | NatNeeded Type
+  | EvaluatedValue Value
+  | VarShadowed Text Context
+  | VarMismatch Quantity Quantity Text
+  | DifferentDerivations [Type]
+  | BranchMismatch Type Type
+  | ArgMismatch Type Type
+  | ConsMismatch Type Type
+  | FoldMismatch Type Type
+  | ArgSize Nat Nat
+  | VarDoesntExist Text
+  | NoBorrowing Text
+  | NoReset Text
+  | NoWeakening
+  | NoDerivations
+  | ListNeeded Expression Type
+  | AbstractionError (Set Text)

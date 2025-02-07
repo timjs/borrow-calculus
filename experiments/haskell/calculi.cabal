@@ -1,0 +1,53 @@
+cabal-version: 2.0
+
+-- This file has been generated from package.yaml by hpack version 0.36.0.
+--
+-- see: https://github.com/sol/hpack
+
+name:           calculi
+version:        0.1.0.0
+author:         Tim Steenvoorden
+maintainer:     tim.steenvoorden@gmail.com
+copyright:      BSD3
+license:        BSD3
+build-type:     Simple
+
+library
+  exposed-modules:
+      Calculi.Borrowing.Algorithmic
+  other-modules:
+      Paths_calculi
+  autogen-modules:
+      Paths_calculi
+  hs-source-dirs:
+      src
+  default-extensions:
+      LambdaCase
+      MultiWayIf
+      MonadComprehensions
+      NegativeLiterals
+      NoStarIsType
+      BlockArguments
+      ImportQualifiedPost
+      PartialTypeSignatures
+      OverloadedStrings
+      OverloadedLists
+      DefaultSignatures
+      PatternSynonyms
+      FunctionalDependencies
+      GADTs
+      ExistentialQuantification
+      DataKinds
+      QuantifiedConstraints
+      StrictData
+  ghc-options: -Wall -Wcompat -Widentities -Wincomplete-record-updates -Wincomplete-uni-patterns -Wpartial-fields -Wredundant-constraints
+  build-depends:
+      base
+    , containers
+    , relude >=1.2
+    , text
+    , unordered-containers
+  mixins:
+      base hiding (Prelude)
+    , relude (Relude as Prelude)
+  default-language: GHC2021

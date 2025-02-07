@@ -1,0 +1,83 @@
+name:                calculi
+version:             0.1.0.0
+license:             BSD3
+author:              Tim Steenvoorden
+maintainer:          tim.steenvoorden@gmail.com
+copyright:           BSD3
+
+
+dependencies:
+  - name: base
+    mixin:
+      - hiding (Prelude)
+  - name: relude
+    version: ">= 1.2"
+    mixin:
+      - (Relude as Prelude)
+  - text
+  - unordered-containers
+  - containers
+  # - eveff
+
+
+language: GHC2021
+
+default-extensions:
+  # Syntactic conveniences:
+  - LambdaCase
+  - MultiWayIf
+
+  # Syntactic adjustments:
+  - MonadComprehensions
+  - NegativeLiterals
+  - NoStarIsType
+  - BlockArguments
+  - ImportQualifiedPost
+
+  # Type annotations:
+  - PartialTypeSignatures
+
+  # Classes and deriving:
+  # - DerivingVia
+
+  # Prelude and overloading:
+  # - NoImplicitPrelude
+  # - PackageImports
+  - OverloadedStrings
+  - OverloadedLists
+
+  # Intermediate syntactic adjustments:
+  - DefaultSignatures
+  - PatternSynonyms
+  # - ApplicativeDo
+
+  # Intermediate type extensions:
+  - FunctionalDependencies
+  # - UndecidableInstances
+  - GADTs
+  - ExistentialQuantification
+
+  # Advanced type extensions:
+  - DataKinds
+  # - TypeFamilies
+  # - TypeFamilyDependencies
+  - QuantifiedConstraints
+
+  # Semantic extensions:
+  - StrictData
+
+
+ghc-options:
+  - -Wall
+  - -Wcompat
+
+  - -Widentities
+  - -Wincomplete-record-updates
+  - -Wincomplete-uni-patterns
+  - -Wpartial-fields
+  - -Wredundant-constraints
+
+
+library:
+  source-dirs:
+    - src

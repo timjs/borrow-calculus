@@ -1,0 +1,444 @@
+\section{Notation}
+
+\subsection{Metavariables}
+
+\begin{longtable}[]{@{}rl@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\(a\) & \\
+\(b\) & basic values \\
+\(c\) & primitive values \\
+\(d\) & declarations \\
+\(e\) & expressions \\
+\(f\) & builtin functions \\
+\(g\) & \\
+\(h\) & \\
+\(i\) & (indexing) \\
+\(j\) & (indexing) \\
+\(k\) & \\
+\(l\) & locations \\
+\(m\) & modules \\
+\(n\) & \\
+\(o\) & \\
+\(p\) & patterns \\
+\(q\) & quantities \\
+\(r\) & \\
+\(s\) & \\
+\(t\) & \\
+\(u\) & \\
+\(v\) & values \\
+\(w\) & \\
+\(x\) & variables \\
+\(y\) & \\
+\(z\) & \\
+\end{longtable}
+
+\begin{longtable}[]{@{}rl@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\(\alpha\) & type variables \\
+\(\beta\) & basic types \\
+\(\gamma\) & \\
+\(\delta\) & \\
+\(\varepsilon\) & borrow quantity \\
+\(\zeta\) & \\
+\(\eta\) & effect row \\
+\(\theta\) & heap variables \\
+\(\iota\) & \\
+\(\kappa\) & kinds \\
+\(\lambda\) & effect label \\
+\(\mu\) & multiple quantity \\
+\(\nu\) & owned quantity \\
+\(\xi\) & \\
+\(ο\) & \\
+\(\pi\) & primitive types \\
+\(\rho\) & row variable \\
+\(\sigma\) & type schemas \\
+\(\tau\) & types \\
+\(\upsilon\) & \\
+\(\varphi\) & \\
+\(\chi\) & \\
+\(\psi\) & \\
+\(\omega\) & unrestricted quantity \\
+\end{longtable}
+
+We write:\\
+\(\lbrack{\overline{\, x\:}}^{n}\text{ for an }\text{ordered}\text{ set of }x\text{es of length }n\text{, so }{x_{1},\ldots,x_{n}}.\rbrack\)
+
+\section{Syntax}
+
+\[\begin{array}{r}
+\begin{array}{llll}
+m & ::= & & \text{Modules}: \\
+ & | & {{\overline{\, d\:}}^{\ast};e} & \text{– }\text{ main }
+\end{array} \\
+\begin{array}{llll}
+d & ::= & & \text{Declarations}: \\
+ & | & {\mathsf{\mathbf{\text{type}}}\ X = \langle{\overline{\, C^{n}\left( {\overline{\,\tau\:}}^{n} \right)\:}}^{m}\rangle} & \text{– }\text{ types}
+\end{array} \\
+\begin{array}{llll}
+e & ::= & & \text{Expressions}: \\
+ & | & x & \text{– }\text{ variable} \\
+ & | & {{}^{{\overline{\, x\:}}^{\ast}}\left\{ e \right\}} & \text{– }\text{ borrow} \\
+ & | & {|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|\ e_{0}} & \text{– }\text{ abstraction} \\
+ & | & {e_{0}({\overline{\, e\:}}^{n})} & \text{– }\text{ application} \\
+ & | & {(,{\overline{\, e\:}}^{n})} & \text{– }\text{ tuple} \\
+ & | & {\mathsf{\mathbf{\text{val}}}^{q_{0}}\ {(,{\overline{\, x\:}}^{n})} = e_{0};\ e} & \text{– }\text{ split} \\
+ & | & {C({\overline{\, e\:}}^{n})} & \text{– }\text{ variant} \\
+ & | & {\mathsf{\mathbf{\text{match}}}^{q_{0}}\ e_{0}\ \{{\overline{\,{C({\overline{\, x\:}}^{n})}e\:}}^{m}\}} & \text{– }\text{ match}
+\end{array} \\
+\begin{array}{llll}
+v & ::= & & \text{Values}: \\
+ & | & {{{}^{{\overline{\, z\:}}^{\ast}}{|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|}}\ e_{0}} & \text{– }\text{ abstraction} \\
+ & | & {(,{\overline{\, v\:}}^{n})} & \text{– }\text{ tuple} \\
+ & | & {C({\overline{\, v\:}}^{n})} & \text{– }\text{ variant}
+\end{array} \\
+\begin{array}{llll}
+b & ::= & & \text{Basic values}: \\
+ & | & {(,{\overline{\, b\:}}^{n})} & \text{– }\text{ tuple} \\
+ & | & {C({\overline{\, b\:}}^{n})} & \text{– }\text{ variant}
+\end{array}
+\end{array}\] Note we have \(b \subset v \subset e\)
+
+\[\begin{array}{r}
+\begin{array}{llll}
+\tau & ::= & & \text{Types}: \\
+ & | & \varphi & \text{– }\text{ arrow} \\
+ & | & {(,{\overline{\,\tau\:}}^{n})} & \text{– }\text{ product} \\
+ & | & {\langle,{\overline{\,{C({\overline{\,\tau\:}}^{n})}\:}}^{m}\rangle} & \text{– }\text{ sum} \\
+ & | & {\text{List}({,\ }\tau)} & \text{– }\text{ list}
+\end{array} \\
+\begin{array}{llll}
+\varphi & ::= & & \text{Function types}: \\
+ & | & {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}} & \text{– }\text{ arrow}
+\end{array} \\
+\begin{array}{llll}
+q & ::= & & \text{Quantities}: \\
+ & | & \varepsilon & \text{– }\text{ borrowed} \\
+ & | & 1 & \text{– }\text{ linear} \\
+ & | & \omega & \text{– }\text{ unrestricted}
+\end{array}
+\end{array}\]
+
+\subsection{Shorthands}
+
+\[\begin{array}{llll}
+\mu & \in & \left\{ \varepsilon,\omega \right\} & \text{– }\text{ multiple} \\
+\nu & \in & \left\{ 1,\omega \right\} & \text{– }\text{ owned} \\
+\pi & \in & \left\{ \varepsilon,1 \right\} & \text{– }\text{ parameter}
+\end{array}\]
+
+\subsection{Sugar}
+
+\[\begin{array}{llll}
+{\mathsf{\mathbf{\text{fun}}}\ x_{0}({\overline{\,{x\text{ :}^{q}\tau}\:}}^{n})\ e_{0};\ e} & ≔ & {\mathsf{\mathbf{\text{val}}}^{\omega}\ x_{0} = {|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|\ e_{0}};\ e} & \text{– }\text{ function declaration} \\
+{\mathsf{\mathbf{\text{with}}}\ x_{0}\  \leftarrow {e_{0}({\overline{\, e\:}}^{n})};\ e} & ≔ & {e_{0}({\overline{\, e\:}}^{n},{|{x_{0}\text{ :}^{q}\tau}|\ e})} & \text{– }\text{ with binding }
+\end{array}\]
+
+About with-binding:
+\(\lbrack\text{Should it be in an }\varepsilon\text{ context?}\rbrack\)
+
+\section{Typing}
+
+The algorithmic typing rules of \(\lambda^{\text{borrow}}\) are given in
+between below text. The typing relation
+\[\Gamma^{+}\  \vdash \ e^{+}\ :^{q^{+}}\ \tau^{-}\  \rightsquigarrow \ \Gamma^{-}\]
+can be read as ``using expression \(e\) with quantity \(q\) can make use
+of all the bindings in context \(\Gamma\), which yields type \(\tau\)
+and a modified context \(\Gamma'\).''
+
+\subsection{Variable lookup}
+
+Variable lookup comes in two flavours. Linear bindings with quantity
+\(1\) are looked up and removed from the context as shown in rule
+\(\text{Var}_{1}\). Borrowed and unrestricted bindings with quantities
+\(\varepsilon\) and \(\omega\) respectively, are looked up, but stay in
+the resulting context. Rules \(\text{Var}_{\mu}\) define this for
+\(\mu \in \left\{ \varepsilon,\omega \right\}\) simultaneously.
+\[\begin{array}{r}
+{\text{Var}_{1}\ \frac{\text{\quad\quad}\ }{\Gamma{,\ }{x\text{ :}^{1}\tau}\  \vdash \ x\ :^{1}\ \tau\  \rightsquigarrow \ \Gamma}\ } \\
+{\text{Var}_{\mu}\ \frac{\text{\quad\quad}\ }{\Gamma{,\ }{x\text{ :}^{\mu}\tau}\  \vdash \ x\ :^{\mu}\ \tau\  \rightsquigarrow \ \Gamma{,\ }{x\text{ :}^{\mu}\tau}}\ \mu \in \left\{ \varepsilon,\omega \right\}}
+\end{array}\]
+
+We need a \emph{weakening} rule which states that unrestricted bindings
+can be used linearly. Rules \(\text{Var}_{\pi}\) also state that
+unrestricted bindings can be borrowed freely. Equivalently, we could
+define weakening as a general rule on bindings instead of a rule for
+variable lookup. However, this way our rule set would be
+nondeterministic.
+\[\text{Weak}\ \frac{\text{\quad\quad}{\Gamma\  \vdash \ x\ :^{\omega}\ \tau\  \rightsquigarrow \ \Gamma}}{\Gamma\  \vdash \ x\ :^{1}\ \tau\  \rightsquigarrow \ \Gamma}\ \]
+
+\[\text{Var}_{\pi}\ \frac{\text{\quad\quad}\ }{\Gamma{,\ }{x\text{ :}^{\omega}\tau}\  \vdash \ x\ :^{\pi}\ \tau\  \rightsquigarrow \ \Gamma{,\ }{x\text{ :}^{\omega}\tau}}\ \pi \in \left\{ 1,\varepsilon \right\}\]
+
+To allow linear bindings, that is bindings with quantity \(1\), to be
+borrowed, we need to do additional bookkeeping. Borrows are only valid
+in a lexical region. After this region ends, we restore the original
+quantity on the binding.
+\[\text{Borrow}_{1}\ \frac{\text{\quad\quad}{\Gamma_{0}{,\ }{\overline{\,{x\text{ :}^{\varepsilon}\tau}\:}}^{\ast}\  \vdash \ e_{0}\ :^{\left\lceil q \right\rceil}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}{,\ }{\overline{\,{x\text{ :}^{\varepsilon}\tau}\:}}^{\ast}}}{\Gamma_{0}{,\ }{\overline{\,{x\text{ :}^{1}\tau}\:}}^{\ast}\  \vdash \ {{}^{{\overline{\, x\:}}^{\ast}}\left\{ e_{0} \right\}}\ :^{q}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}{,\ }{\overline{\,{x\text{ :}^{1}\tau}\:}}^{\ast}}\ \tau \neq \varphi\]
+Add explanation why linear functions cannot be borrowed. Here, we need
+to take care borrowed bindings do not escape from this region.
+Therefore, we \emph{lift} quantity \(q\) of the expression surroundings
+to be an owned quantity. That is, borrowed expression surroundings are
+lifted to unrestricted contexts, the two owning quantities stay the
+same. The definition of lifting is as follows. \[\begin{array}{lll}
+{\left\lceil \cdot \right\rceil:\text{ Quantity }\text{ Quantity}} & \left\lceil \varepsilon \right\rceil & = \\
+\omega & \left\lceil q \right\rceil & = \\
+q
+\end{array}\]
+
+Alternatively, we could enforce explicit borrowing of unrestricted
+bindings, in the same way we do that for linear ones. We can change
+\(\text{Borrow}_{1}\) to also include \(\omega\) bindings. Then, we need
+to alter \(\text{Var}_{\pi}\) to remove \(\varepsilon\) as a free
+borrow. \[\begin{array}{r}
+{\text{Var}_{\text{weak}}\ \frac{\text{\quad\quad}\ }{\Gamma{,\ }{x\text{ :}^{\omega}\tau}\  \vdash \ x\ :^{1}\ \tau\  \rightsquigarrow \ \Gamma{,\ }{x\text{ :}^{\omega}\tau}}\ } \\
+{\text{Borrow}_{\nu}\ \frac{\text{\quad\quad}{\Gamma_{0}{,\ }{\overline{\,{x\text{ :}^{\varepsilon}\tau}\:}}^{\ast}\  \vdash \ e_{0}\ :^{\left\lceil q \right\rceil}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}{,\ }{\overline{\,{x\text{ :}^{\varepsilon}\tau}\:}}^{\ast}}}{\Gamma_{0}{,\ }{\overline{\,{x\text{ :}^{\nu}\tau}\:}}^{\ast}\  \vdash \ {{}^{{\overline{\, x\:}}^{\ast}}\left\{ e_{0} \right\}}\ :^{q}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}{,\ }{\overline{\,{x\text{ :}^{\nu}\tau}\:}}^{\ast}}\ \nu \in \left\{ 1,\omega \right\} \land \tau \neq \varphi}
+\end{array}\] This restricts the places where we can use explicit
+borrowing. Is this good or bad? Could help in borrow inference: only
+there were linear variables are used\ldots{}
+
+\subsection{Functions}
+
+For function abstraction, we have three cases, one for each quantity.
+Depending on the quantity of the expression surroundings, anonymous
+function blocks have access to different sets of bindings.
+
+\begin{description}
+\item[\(\varepsilon\)]
+As we are in a borrowed expression surroundings, function blocks cannot
+be returned nor stored: they are \emph{second-class}. Therefore, these
+blocks have access to all borrowed bindings as well as all unrestricted
+bindings. As they can be called multiple times (the code is borrowed and
+can be used multiple times), we cannot allow usage of linear bindings.
+\item[\(\omega\)]
+For unrestricted expression surroundings the situation in different. As
+these function blocks are owned, they \emph{can} be stored or returned.
+Therefore, we need to make sure second-class bindings are not stored in
+its closure. Borrowed bindings should not escape, only unrestricted
+bindings are allowed.
+\item[\(1\)]
+Similarly, linear blocks are first-class and can be saved or returned,
+so we cannot close over borrowed bindings. However, as we know that the
+resulting closure can only be used \emph{once}, in this case we can also
+allow access to linear bindings.
+\end{description}
+
+\[\begin{array}{r}
+{\text{Abs}_{\varepsilon}\ \frac{\text{\quad\quad}{\Gamma_{0}^{\varepsilon}{,\ }\Gamma_{0}^{\omega}{,\ }{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|\ e_{0}}\ :^{\varepsilon}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{1}{,\ }\Gamma_{1} \smallsetminus {\overline{\, x\:}}^{n}}\ } \\
+{\text{Abs}_{1}\ \frac{\text{\quad\quad}{\Gamma_{0}^{1}{,\ }\Gamma_{0}^{\omega}{,\ }{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|\ e_{0}}\ :^{1}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{\varepsilon}{,\ }\Gamma_{1} \smallsetminus {\overline{\, x\:}}^{n}}\ } \\
+{\text{Abs}_{\omega}\ \frac{\text{\quad\quad}{\Gamma_{0}^{\omega}{,\ }{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|\ e_{0}}\ :^{\omega}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{\varepsilon}{,\ }\Gamma_{0}^{1}{,\ }\Gamma_{1} \smallsetminus {\overline{\, x\:}}^{n}}\ }
+\end{array}\]
+
+For the bodies of the abstractions, there are two things to keep in
+mind. First, we should not be allowed to return bindings that are
+borrowed, so the quantity context of the body should be owning and
+cannot be \(\varepsilon\). Second, the body \emph{should not know} how
+many times its result will be used. Take for example the identity
+function
+\[{\mathsf{\mathbf{\text{fun}}}\ \text{identity}({x\text{ :}^{1}\tau})\ x;\ \ }\quad\]
+which by definition {[}X{]} itself is unrestricted
+\[{\mathsf{\mathbf{\text{val}}}^{\omega}\ \text{ identity} = {|{x\text{ :}^{1}\tau}|\ x};\ \ }.\]
+This does not mean the body of the abstraction should be checked in an
+\(\omega\) context. We have binding \(x\) linearly in the context, we
+can return it, as it is owned. However, how the result will be used is a
+responsibility of the caller. This means, it suffices to check the body
+of an abstraction in a linear context!
+
+To select bindings with the proper quantity from the context, we use
+\emph{context filtering} which is defined as follows.
+\[\begin{array}{lll}
+{\Gamma^{q}:\text{ Context } \times \text{ Quantity }\text{ Context}} & \varnothing^{q} & = \\
+\varnothing & \left( \Gamma{,\ }{x\text{ :}^{q}\tau} \right)^{q} & = \\
+\Gamma^{q}{,\ }{x\text{ :}^{q}\tau} & \left( \Gamma{,\ }{x\text{ :}^{q'}\tau} \right)^{q} & = \\
+\Gamma^{q}
+\end{array}\]
+
+When functions are applied in an expression surroundings of quantity
+\(q\), the function itself needs to be available \(q\) times. Quantities
+of the arguments are determined by the function's type signature.
+\[\text{Wilt}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{1}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{q_{i}}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{0}\  \vdash \ \mathsf{\mathbf{\text{wilt}}}{e_{0}({\overline{\, e\:}}^{n})}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{n + 1}}\ \]
+Is lowering really needed here? Calls can be just borrowed, that's
+probably enough. However, do we restrict or allow something when calls
+cannot be \(\omega\)?
+
+\[\begin{array}{lll}
+{\left\lfloor \cdot \right\rfloor:\text{ Quantity }\text{ Quantity}} & \left\lfloor \omega \right\rfloor & = \\
+\varepsilon & \left\lfloor q \right\rfloor & = \\
+q
+\end{array}\]
+
+Problems arise when linear arguments are passed to functions. Linear
+arguments are owned and could be returned by a function. We need to make
+sure the returned value can also only be used once.
+
+The identity function simply returns its only parameter. The quantity of
+this parameter cannot be \(\varepsilon\), as borrowed parameters cannot
+be returned from functions, so it should be owned. We could pick
+\(\omega\), but then we'd restrict ourselves because it cannot be used
+on linear arguments. Therefore, the sensible choice is to pick \(1\).
+\[\mathsf{\mathbf{\text{fun}}}\ \text{identity}({x\text{ :}^{1}\tau})\ x;\ \ \]
+
+\(\begin{array}{r}
+\mathsf{\mathbf{\text{val}}}^{1}\ a = 42;\  \\
+\begin{array}{r}
+\mathsf{\mathbf{\text{val}}}^{\omega}\ b = {\text{identity}(a)};\  \\
+{(b,b)}
+\end{array}
+\end{array}\)
+
+Variable \(a\) is used by passing it to \(\text{identity}\), the
+returned value \(b\) however, is made available with quantity
+\(\omega\). Therefore, we are allowed to create a pair of two \(b\)`s
+and we've indirectly duplicated \(a\)\ldots{}
+
+There are two solutions:
+
+\begin{enumerate}
+\item
+  Functions with linear parameters can only be called in a linear
+  quantity context.
+\item
+  Functions with linear parameters, when called in an unrestricted
+  quantity context, need their arguments to be unrestricted as well.
+\end{enumerate}
+
+The first option would be a severe restriction, as many functions with
+linear parameters should be usable on unrestricted arguments, and the
+results would need to be used linearly. The second option seems more
+logical.
+
+\[\begin{array}{r}
+{\text{App}_{\lambda}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{\varepsilon}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{q_{i}}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{0}\  \vdash \ {e_{0}({\overline{\, e\:}}^{n})}\ :^{\pi}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{n + 1}}\ \pi \in \left\{ \varepsilon,1 \right\}} \\
+{\text{App}_{\omega}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{\varepsilon}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{\left| q_{i} \right|}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{0}\  \vdash \ {e_{0}({\overline{\, e\:}}^{n})}\ :^{\omega}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{n + 1}}\ }
+\end{array}\]
+
+\[\begin{array}{lll}
+{| \cdot |:\text{ Quantity }\text{ Quantity}} & |1| & = \\
+\omega & |q| & = \\
+q
+\end{array}\]
+
+\subsection{Datatypes}
+
+When creating datatypes, we need to store data so each subexpression in
+constructors needs to be owned. Although we allow creating datatypes in
+borrowed expression surroundings, we lift the surrounding quantity to
+make sure stored data is owned.
+\[\text{Construct}\ \frac{{\Delta\  \Vdash \ C\ :\ {({,\ }{\overline{\,\tau\:}}^{n})\tau_{0}}}\text{\quad\quad}{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{q}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{1}\  \vdash \ {C({\overline{\, e\:}}^{n})}\ :^{q}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{n + 1}}\ \]
+Note the similarities and differences between rules \(\text{Con}\) and
+\(\text{App}\):
+\(\lbrack\text{Both “lookup” the type of the function or constructor,
+which directs the type of the arguments and the returntype of the application or construction.}\rbrack\)When
+destructuring datatypes, we have two quantities to take into account:
+\(\lbrack\text{The quantity in which the whole destructuring expression is going to be evaluated.
+We call this the }\text{expression surrounding quantity}.\rbrack\)\[\text{Match}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{q_{0}}\ \tau_{0}\  \rightsquigarrow \ \Gamma'_{0}}\text{\quad\quad}{\text{for each }i \in 1..m}\text{\quad\quad}{\Delta\  \Vdash \ C_{i}\ :\ {({,\ }{\overline{\,\tau\:}}^{n_{i}})\tau_{0}}}\text{\quad\quad}{\Gamma'_{0}{,\ }{\overline{\,{x\text{ :}^{q_{0}}\tau}\:}}^{n_{i}}\  \vdash \ e_{i}\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{i}}}{\Gamma_{0}\  \vdash \ {\mathsf{\mathbf{\text{match}}}^{q_{0}}\ e_{0}\ \{{\overline{\,{C({\overline{\, x\:}}^{n})}e\:}}^{m}\}}\ :^{q}\ \tau\  \rightsquigarrow \  \Cap_{i \in 1..m}\Gamma_{i}}\ \]
+
+Because now we have multiple branches that can be taken, we need to
+\emph{merge} the resulting contexts of each branch and remove the
+freshly introduced bindings if still existing. As after branching,
+contexts can only differ in removed linear bindings, merging two
+contexts is simply set intersection. Check this! Aren't we passing
+let-bound variables to the next argument?
+
+\subsection{Tuples}
+
+Tuples are \emph{unboxed}, which means they don't allocate space on the
+heap and therefore do not store their components in the way datatypes
+do. Therefore they their components can be borrowed.
+\[\text{Pair}\ \frac{{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{q}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{1}\  \vdash \ {(,{\overline{\, e\:}}^{n})}\ :^{q}\ {(,{\overline{\,\tau\:}}^{n})}\  \rightsquigarrow \ \Gamma_{n + 1}}\ \]
+Due to this design decision, we can define value binding in terms of
+tuple creation and destruction. Otherwise we would not be able to
+\emph{reborrow} a variable, that is, bind a borrowed variable to a new
+name.
+
+% \begin{Shaded}
+% \begin{Highlighting}[]
+% \KeywordTok{fun} \FunctionTok{reborrow}\OperatorTok{(}\NormalTok{ε }\VariableTok{x} \OperatorTok{:} \DataTypeTok{a}\OperatorTok{)}
+%       \KeywordTok{val}\NormalTok{ ε }\FunctionTok{y} \OperatorTok{=}\NormalTok{ x}
+%       \OperatorTok{...}
+
+% \end{Highlighting}
+% \end{Shaded}
+
+\[\begin{array}{llll}
+{\mathsf{\mathbf{\text{val}}}^{q}\ x = e;\ c} & ≔ & {\mathsf{\mathbf{\text{val}}}^{q}\ (x) = (e);\ c} & \text{– }\text{ value binding}
+\end{array}\]
+
+For the splitting of tuples, we ask an expression \(e_{0}\) to be
+available for quantity \(q_{0}\). The resulting bindings \(x_{1}\) and
+\(x_{2}\) are then made available for the same quantity \(q_{0}\) in the
+remaining part of the program. Note we need to remove these bindings
+from the resulting context \(\Gamma_{2}\) if they still exist. This is
+similar to the way we handle matching on datatypes.
+\[\text{Split}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{q_{0}}\ {(,{\overline{\,\tau\:}}^{n})}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\Gamma_{1}{,\ }{\overline{\,{x\text{ :}^{q_{0}}\tau}\:}}^{n}\  \vdash \ e\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{2}}}{\Gamma_{0}\  \vdash \ {\mathsf{\mathbf{\text{split}}}^{q_{0}}\ {(,{\overline{\, x\:}}^{n})} = e_{0};\ e}\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{2} \smallsetminus {\overline{\, x\:}}^{n}}\ \]
+
+\subsection{Built-ins}
+
+Note that pre-defined functions, as well as any top-level functions, can
+be used unrestricted. So their body is checked in a surrounding of
+quantity \(\omega\). \[\begin{array}{r}
+\begin{array}{llll}
+\text{ fold}_{q} & : & {({{}^{q}{\text{List}({,\ }\tau_{1})}}{,\ }{{}^{1}\tau_{2}}{,\ }{{}^{\varepsilon}{({{}^{q}\tau_{1}}{,\ }{{}^{1}\tau_{2}})\tau_{2}}})\tau_{2}} & \text{– }\text{ fold list}
+\end{array} \\
+\begin{array}{llll}
+\text{ Nil}_{\tau} & : & {\text{List}({,\ }\tau)} & \text{– }\text{ nil list} \\
+\text{ Cons} & : & {(\tau{,\ }{\text{List}({,\ }\tau)}){\text{List}({,\ }\tau)}} & \text{– }\text{ cons list}
+\end{array} \\
+\begin{array}{llll}
+\text{ Bool} & \text{:=} & {\langle\text{False}(),\text{ True}()\rangle} & \text{– }\text{ boolean type} \\
+\text{ Option}(\tau) & \text{:=} & {\langle\text{None}(),\text{ Some}(\tau)\rangle} & \text{– }\text{ option type} \\
+\text{ Result}\left( \tau_{1},\tau_{2} \right) & \text{:=} & {\langle\text{Wrong}\left( \tau_{1} \right),\text{ Right}\left( \tau_{2} \right)\rangle} & \text{– }\text{ either type}
+\end{array}
+\end{array}\]
+
+\section{Overview}
+
+\subsection{Variables}
+
+\[\begin{array}{r}
+{\text{Var}_{1}\ \frac{\text{\quad\quad}\ }{\Gamma{,\ }{x\text{ :}^{1}\tau}\  \vdash \ x\ :^{1}\ \tau\  \rightsquigarrow \ \Gamma}\ } \\
+{\text{Var}_{\mu}\ \frac{\text{\quad\quad}\ }{\Gamma{,\ }{x\text{ :}^{\mu}\tau}\  \vdash \ x\ :^{\mu}\ \tau\  \rightsquigarrow \ \Gamma{,\ }{x\text{ :}^{\mu}\tau}}\ \mu \in \left\{ \varepsilon,\omega \right\}} \\
+{\text{Var}_{\pi}\ \frac{\text{\quad\quad}\ }{\Gamma{,\ }{x\text{ :}^{\omega}\tau}\  \vdash \ x\ :^{\pi}\ \tau\  \rightsquigarrow \ \Gamma{,\ }{x\text{ :}^{\omega}\tau}}\ \pi \in \left\{ 1,\varepsilon \right\}} \\
+ \\
+{\text{Borrow}_{1}\ \frac{\text{\quad\quad}{\Gamma_{0}{,\ }{\overline{\,{x\text{ :}^{\varepsilon}\tau}\:}}^{\ast}\  \vdash \ e_{0}\ :^{\left\lceil q \right\rceil}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}{,\ }{\overline{\,{x\text{ :}^{\varepsilon}\tau}\:}}^{\ast}}}{\Gamma_{0}{,\ }{\overline{\,{x\text{ :}^{1}\tau}\:}}^{\ast}\  \vdash \ {{}^{{\overline{\, x\:}}^{\ast}}\left\{ e_{0} \right\}}\ :^{q}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}{,\ }{\overline{\,{x\text{ :}^{1}\tau}\:}}^{\ast}}\ \tau \neq \varphi}
+\end{array}\]
+
+\subsection{Uncurried}
+
+\[\begin{array}{r}
+{\text{Abs}_{\varepsilon}\ \frac{\text{\quad\quad}{\Gamma_{0}^{\varepsilon}{,\ }\Gamma_{0}^{\omega}{,\ }{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|\ e_{0}}\ :^{\varepsilon}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{1}{,\ }\Gamma_{1} \smallsetminus {\overline{\, x\:}}^{n}}\ } \\
+{\text{Abs}_{1}\ \frac{\text{\quad\quad}{\Gamma_{0}^{1}{,\ }\Gamma_{0}^{\omega}{,\ }{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|\ e_{0}}\ :^{1}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{\varepsilon}{,\ }\Gamma_{1} \smallsetminus {\overline{\, x\:}}^{n}}\ } \\
+{\text{Abs}_{\omega}\ \frac{\text{\quad\quad}{\Gamma_{0}^{\omega}{,\ }{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{\overline{\,{x\text{ :}^{q}\tau}\:}}^{n}|\ e_{0}}\ :^{\omega}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{\varepsilon}{,\ }\Gamma_{0}^{1}{,\ }\Gamma_{1} \smallsetminus {\overline{\, x\:}}^{n}}\ } \\
+ \\
+{\text{App}_{\lambda}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{\varepsilon}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{q_{i}}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{0}\  \vdash \ {e_{0}({\overline{\, e\:}}^{n})}\ :^{\pi}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{n + 1}}\ \pi \in \left\{ \varepsilon,1 \right\}} \\
+{\text{App}_{\omega}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{\varepsilon}\ {({,\ }{\overline{\,{{}^{q}\tau}\:}}^{n})\tau_{0}}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{\left| q_{i} \right|}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{0}\  \vdash \ {e_{0}({\overline{\, e\:}}^{n})}\ :^{\omega}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{n + 1}}\ } \\
+ \\
+ \\
+{\text{Pair}\ \frac{{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{q}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{1}\  \vdash \ {(,{\overline{\, e\:}}^{n})}\ :^{q}\ {(,{\overline{\,\tau\:}}^{n})}\  \rightsquigarrow \ \Gamma_{n + 1}}\ } \\
+{\text{Split}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{q_{0}}\ {(,{\overline{\,\tau\:}}^{n})}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\Gamma_{1}{,\ }{\overline{\,{x\text{ :}^{q_{0}}\tau}\:}}^{n}\  \vdash \ e\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{2}}}{\Gamma_{0}\  \vdash \ {\mathsf{\mathbf{\text{split}}}^{q_{0}}\ {(,{\overline{\, x\:}}^{n})} = e_{0};\ e}\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{2} \smallsetminus {\overline{\, x\:}}^{n}}\ } \\
+ \\
+{\text{Construct}\ \frac{{\Delta\  \Vdash \ C\ :\ {({,\ }{\overline{\,\tau\:}}^{n})\tau_{0}}}\text{\quad\quad}{\text{for each }i \in 1..n}\text{\quad\quad}{\Gamma_{i - 1} \Cap \Gamma_{i}\  \vdash \ e_{i}\ :^{q}\ \tau_{i}\  \rightsquigarrow \ \Gamma_{i + 1}}}{\Gamma_{1}\  \vdash \ {C({\overline{\, e\:}}^{n})}\ :^{q}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{n + 1}}\ } \\
+{\text{Match}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{q_{0}}\ \tau_{0}\  \rightsquigarrow \ \Gamma'_{0}}\text{\quad\quad}{\text{for each }i \in 1..m}\text{\quad\quad}{\Delta\  \Vdash \ C_{i}\ :\ {({,\ }{\overline{\,\tau\:}}^{n_{i}})\tau_{0}}}\text{\quad\quad}{\Gamma'_{0}{,\ }{\overline{\,{x\text{ :}^{q_{0}}\tau}\:}}^{n_{i}}\  \vdash \ e_{i}\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{i}}}{\Gamma_{0}\  \vdash \ {\mathsf{\mathbf{\text{match}}}^{q_{0}}\ e_{0}\ \{{\overline{\,{C({\overline{\, x\:}}^{n})}e\:}}^{m}\}}\ :^{q}\ \tau\  \rightsquigarrow \  \Cap_{i \in 1..m}\Gamma_{i}}\ }
+\end{array}\]
+
+\subsection{Curried}
+
+\[\begin{array}{r}
+{\text{Abs}_{\varepsilon}\ \frac{\text{\quad\quad}{\Gamma_{0}^{\varepsilon}{,\ }\Gamma_{0}^{\omega}{,\ }{x_{1}\text{ :}^{q_{1}}\tau_{1}}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{x_{1}\text{ :}^{q_{1}}\tau_{1}}|\ e_{0}}\ :^{\varepsilon}\ {({,\ }{{}^{q_{1}}\tau_{1}})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{1}{,\ }\Gamma_{1} \smallsetminus x_{1}}\ } \\
+{\text{Abs}_{1}\ \frac{\text{\quad\quad}{\Gamma_{0}^{1}{,\ }\Gamma_{0}^{\omega}{,\ }{x_{1}\text{ :}^{q_{1}}\tau_{1}}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{x_{1}\text{ :}^{q_{1}}\tau_{1}}|\ e_{0}}\ :^{1}\ {({,\ }{{}^{q_{1}}\tau_{1}})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{\varepsilon}{,\ }\Gamma_{1} \smallsetminus x_{1}}\ } \\
+{\text{Abs}_{\omega}\ \frac{\text{\quad\quad}{\Gamma_{0}^{\omega}{,\ }{x_{1}\text{ :}^{q_{1}}\tau_{1}}\  \vdash \ e_{0}\ :^{1}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{1}}}{\Gamma_{0}\  \vdash \ {|{x_{1}\text{ :}^{q_{1}}\tau_{1}}|\ e_{0}}\ :^{\omega}\ {({,\ }{{}^{q_{1}}\tau_{1}})\tau_{0}}\  \rightsquigarrow \ \Gamma_{0}^{\varepsilon}{,\ }\Gamma_{0}^{1}{,\ }\Gamma_{1} \smallsetminus x_{1}}\ } \\
+ \\
+{\text{App}_{\lambda}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{\varepsilon}\ {({,\ }{{}^{q_{1}}\tau_{1}})\tau_{0}}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\Gamma_{1}\  \vdash \ e_{1}\ :^{q_{1}}\ \tau_{1}\  \rightsquigarrow \ \Gamma_{2}}}{\Gamma_{0}\  \vdash \ {e_{0}(e_{1})}\ :^{\pi}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{2}}\ \pi \in \left\{ \varepsilon,1 \right\}} \\
+{\text{App}_{\omega}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{\varepsilon}\ {({,\ }{{}^{q_{1}}\tau_{1}})\tau_{0}}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\Gamma_{1}\  \vdash \ e_{1}\ :^{\left| q_{1} \right|}\ \tau_{1}\  \rightsquigarrow \ \Gamma_{2}}}{\Gamma_{0}\  \vdash \ {e_{0}(e_{1})}\ :^{\omega}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{2}}\ } \\
+ \\
+ \\
+{\text{Pair}\ \frac{{\Gamma_{1}\  \vdash \ e_{1}\ :^{q}\ \tau_{1}\  \rightsquigarrow \ \Gamma_{2}}\text{\quad\quad}{\Gamma_{2}\  \vdash \ e_{2}\ :^{q}\ \tau_{2}\  \rightsquigarrow \ \Gamma_{3}}}{\Gamma_{1}\  \vdash \ {(e_{1},e_{2})}\ :^{q}\ {(\tau_{1},\tau_{2})}\  \rightsquigarrow \ \Gamma_{3}}\ } \\
+{\text{Split}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{q_{0}}\ {(\tau_{1},\tau_{2})}\  \rightsquigarrow \ \Gamma_{1}}\text{\quad\quad}{\Gamma_{1}{,\ }{x_{1}\text{ :}^{q_{0}}\tau_{1}}{,\ }{x_{2}\text{ :}^{q_{0}}\tau_{2}}\  \vdash \ e\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{2}}}{\Gamma_{0}\  \vdash \ {\mathsf{\mathbf{\text{split}}}^{q_{0}}\ {(x_{1},x_{2})} = e_{0};\ e}\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{2} \smallsetminus x_{1} \smallsetminus x_{2}}\ } \\
+ \\
+{\text{Construct}\ \frac{{\Delta\  \Vdash \ C\ :\ {({,\ }\tau_{1})\tau_{0}}}\text{\quad\quad}{\Gamma_{1}\  \vdash \ e_{1}\ :^{q}\ \tau_{1}\  \rightsquigarrow \ \Gamma_{2}}}{\Gamma_{1}\  \vdash \ {C(e_{1})}\ :^{q}\ \tau_{0}\  \rightsquigarrow \ \Gamma_{2}}\ } \\
+{\text{Match}\ \frac{{\Gamma_{0}\  \vdash \ e_{0}\ :^{q_{0}}\ \tau_{0}\  \rightsquigarrow \ \Gamma'_{0}}\text{\quad\quad}{\text{for each }i \in 1..2}\text{\quad\quad}{\Delta\  \Vdash \ C_{i}\ :\ {({,\ }\tau_{i})\tau_{0}}}\text{\quad\quad}{\Gamma'_{0}{,\ }{x_{i}\text{ :}^{q_{0}}\tau_{i}}\  \vdash \ e_{i}\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{i}}}{\Gamma_{0}\  \vdash \ {\mathsf{\mathbf{\text{match}}}^{q_{0}}\ e_{0}\ \{{\overline{\,{C(x)}e\:}}^{2}\}}\ :^{q}\ \tau\  \rightsquigarrow \ \Gamma_{1} \Cap \Gamma_{2}}\ }
+\end{array}\]

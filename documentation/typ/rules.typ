@@ -235,7 +235,7 @@
         each(i in 1..2),
         lookup(Delta, C_i, arrow(tau_i, tau_0)),
         synthesize(Gamma'_0 with arg(x_i, q_0, tau_i), e_i, q, tau, Gamma_i),
-        synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) |-> e, 2)), q, tau, Gamma_1 merge Gamma_2),
+        synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) arrow e, 2)), q, tau, Gamma_1 merge Gamma_2),
       )
     $,
     uncurried: $
@@ -244,7 +244,7 @@
         each(i in 1..m),
         lookup(Delta, C_i, arrow(many(tau, n_i), tau_0)),
         synthesize(Gamma'_0 with many(arg(x, q_0, tau), n_i), e_i, q, tau, Gamma_i),
-        synthesize(Gamma_0, match(q_0, e_0, many(variant(C, many(x, n)) |-> e, m)), q, tau, sect.double_(i in 1..m) Gamma_i),
+        synthesize(Gamma_0, match(q_0, e_0, many(variant(C, many(x, n)) arrow e, m)), q, tau, sect.double_(i in 1..m) Gamma_i),
       )
     $,
   ),
@@ -265,5 +265,5 @@
   //   synthesize(Gamma_0, e_0, q_0, variants(many(tau_i, 2)), Gamma'_0),
   //   each(i in 1..2),
   //   synthesize(Gamma'_0 with arg(x_i, q_0, tau_i), e_i, q, tau, Gamma_i),
-  //   synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) |-> e, 2)), q, tau, Gamma_1 without x_1 merge Gamma_2 without x_2),
+  //   synthesize(Gamma_0, match(q_0, e_0, many(variant(C, x) arrow e, 2)), q, tau, Gamma_1 without x_1 merge Gamma_2 without x_2),
   // )

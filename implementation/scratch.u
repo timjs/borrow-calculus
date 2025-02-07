@@ -1,0 +1,52 @@
+
+---- Anything below this line is ignored by Unison.
+
+---
+
+
+Expression.examples.dup.borrow t =
+  Expression.Abstract [(One,"x",t)] (
+    Bind One "f" (Abstract [] (Var "x")) (
+      Borrow ["f"] (Pair [Apply (Var "f") [],Apply (Var "f") []])
+    )
+  )
+
+> Expression.display (Expression.examples.dup.borrow Nat)
+> synthesize.run.display Typetext.base (Expression.examples.dup.borrow Nat)
+
+
+Expression.example.dup.id q_c q_a =
+  Define "id" [(One, "x", Nat)] (
+    Var "x"
+  ) (
+      Bind q_a "a" (Nat 42) (
+      Bind q_c "b" (Apply (Var "id") [Var "a"]) (
+      Pair [Var "b", Var "b"]
+  )))
+
+> Expression.display (dup.id Omega One)
+> synthesize.run.display Typetext.base (dup.id Omega One)
+
+
+Expression.examples.dup.pair : Quantity -> Quantity -> Type -> Expression
+Expression.examples.dup.pair q_x q_t t =
+  use Expression Pair Abstract
+  Abstract [(q_x, "x", t)]
+    (Split q_t ["t", "_"] (Pair [Var "x", Expression.Unit])
+    (Pair [Var "t", Var "t"]))
+
+Expression.examples.dup.fun : Expression
+Expression.examples.dup.fun =
+  Define "pair" [(One, "x", Nat), (One, "y", Unit)] (
+    Pair [Var "x", Var "y"]
+  ) (
+      Bind One "a" (Nat 42) (
+      Bind Omega "p" (Apply (Var "pair") [Var "a", Unit]) (
+      Split Omega ["b", "_"] (Var "p") (
+      Pair [Var "b", Var "b"]
+  ))))
+
+> Expression.display (dup Omega Nat)
+> Expression.display (dup.pair One One Nat)
+> Expression.display dup.fun
+> synthesize.run.display Typetext.base dup.fun

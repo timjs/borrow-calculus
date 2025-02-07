@@ -1,0 +1,46 @@
+{-
+> alias.type lib.base.Boolean Bool
+-}
+
+-- Types -----------------------------------------------------------------------
+
+structural type Option a = Some a | None
+structural type Result e a = Wrong e | Right a
+
+-- Functions -------------------------------------------------------------------
+
+always = const
+
+-- Data ------------------------------------------------------------------------
+
+Text.span : (Char -> Boolean) -> Text -> (Text, Text)
+Text.span p t = (Text.takeWhile p t, Text.dropWhile p t)
+
+-- Abilities -------------------------------------------------------------------
+
+-- Rename for Exception(raise)
+structural ability abilities.Raise where
+  raise : Failure -> x
+
+abilities.Raise.rescue = abilities.Exception.catch
+
+-- Rename for Stream(emit)
+structural ability data.Emit a where
+  emit : a -> ()
+
+-- Rename for Each(each)
+structural ability abilities.Pick where
+  pick : '{Emit a} () -> a
+
+abilities.Throw.toResult = Throw.toEither
+abilities.Throw.toFailure = Throw.toException
+
+abilities.Abort.toOption = Abort.toOptional
+abilities.Abort.toFailure = base.abilities.Abort.toException
+
+-- Don't add general abilities {g}, they cannot be unified...
+abilities.handling : (Request {e} a ->{h} b) -> '{e} a ->{h} b
+abilities.handling handler action = handle !action with handler
+
+hole : a
+hole = todo "hole"

@@ -1,5 +1,5 @@
-#import "commands.typ": *
-#import "rules.typ": rules
+#import "typ/commands.typ": *
+#import "typ/rules.typ": rules
 
 #let identity = (dy: 0pt, it) => it
 #let aside = identity
@@ -102,7 +102,7 @@ $
     tuple(many(e, n)), "tuple",
     val(q_0, tuple(many(x, n)), e_0, e), "split",
     variant(C, many(e, n)), "variant",
-    match(q_0, e_0, many(variant(C, many(x, n)) |-> e, m)), "match",
+    match(q_0, e_0, many(variant(C, many(x, n)) arrow e, m)), "match",
   ) \
   grammar("Values", v,
     cls(more(z), many(arg(x, q, tau), n), e_0), "abstraction",
@@ -209,7 +209,7 @@ That is, borrowed expression surroundings are lifted to unrestricted contexts,
 the two owning quantities stay the same.
 The definition of lifting is as follows.
 $
-  function(lift(dot) : "Quantity" -> "Quantity",
+  function(lift(dot) : "Quantity" arrow "Quantity",
     lift(epsilon), omega,
     lift(q), q,
   )
@@ -272,7 +272,7 @@ This means, it suffices to check the body of an abstraction in a linear context!
 
 To select bindings with the proper quantity from the context, we use _context filtering_ which is defined as follows.
 $
-  function(Gamma^q : "Context" times "Quantity" -> "Context",
+  function(Gamma^q : "Context" times "Quantity" arrow "Context",
     nothing^q, nothing,
     (Gamma with arg(x, q, tau))^q, Gamma^q with arg(x, q, tau),
     (Gamma with arg(x, q', tau))^q, Gamma^q,
@@ -292,7 +292,7 @@ $
 ]
 
 $
-  function(lower(dot) : "Quantity" -> "Quantity",
+  function(lower(dot) : "Quantity" arrow "Quantity",
     lower(omega), epsilon,
     lower(q), q,
   )
@@ -337,7 +337,7 @@ $
 $
 
 $
-  function(freeze(dot) : "Quantity" -> "Quantity",
+  function(freeze(dot) : "Quantity" arrow "Quantity",
     freeze(1), omega,
     freeze(q), q,
   )

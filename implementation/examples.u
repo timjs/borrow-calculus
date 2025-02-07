@@ -1,0 +1,64 @@
+
+
+use Quantity
+
+Expression.examples.contains =
+  Abstract "xs" Epsilon (List Nat) (
+    Abstract "y" Epsilon Nat (
+      Fold Epsilon (Var "xs") False ("x", "a",
+        Branch Epsilon (Compare Nat.eq (Var "x") (Var "y"))
+          (True)
+          (Var "a")
+      )
+    )
+  )
+
+> synthesize.run.display contains
+
+---
+Expression.examples.dedup q_xs q_ys =
+  Abstract "xs" q_xs (List Nat) (
+    Abstract "ys" q_ys (List Nat) (
+      Fold q_xs (Var "xs") (Nil Nat) ("x", "a",
+        Branch Epsilon (examples.contains $ Var "ys" $ Var "x")
+          (Var "a")
+          (Cons (Var "x") (Var "a"))
+      )
+    )
+  )
+
+---
+qs = One
+
+Expression.examples.dedup.fail.call q1 q2 =
+  Bind qs "as" (Nil Nat) (
+    Apply (Apply (dedup q1 q2) (Var "as")) (Var "as")
+  )
+
+> synthesize.run.display ( dedup.fail.call Epsilon One)
+> synthesize.run.display ( dedup.fail.call One Epsilon )
+
+Expression.examples.dedup.fail.borrow.outer q1 q2 =
+  Bind qs "as" (Nil Nat) (
+    Borrow "as" (Apply (Apply (dedup q1 q2) (Var "as")) (Var "as"))
+  )
+
+> synthesize.run.display ( dedup.fail.borrow.outer Epsilon One )
+> synthesize.run.display ( dedup.fail.borrow.outer One Epsilon )
+
+-- FIXME: should be error: captures a borrow!
+Expression.examples.dedup.fail.borrow.between q1 q2 =
+  Bind qs "as" (Nil Nat) (
+    Apply (Borrow "as" (Apply (dedup q1 q2) (Var "as"))) (Var "as")
+  )
+
+> synthesize.run.display ( dedup.fail.borrow.between Epsilon One )
+> synthesize.run.display ( dedup.fail.borrow.between One Epsilon )
+
+Expression.examples.dedup.fail.borrow.inner q1 q2 =
+  Bind qs "as" (Nil Nat) (
+    Apply (Apply (dedup q1 q2) (Borrow "as" (Var "as"))) (Var "as")
+  )
+
+> synthesize.run.display ( dedup.fail.borrow.inner Epsilon One )
+> synthesize.run.display ( dedup.fail.borrow.inner One Epsilon )

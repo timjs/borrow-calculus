@@ -1,6 +1,14 @@
 
 #let identity(it) = it
 
+#let chunks(a, n) = {
+  let r = ()
+  for i in range(int(a.len()/n)) {
+    r.push(a.slice(i*n, count: n))
+  }
+  r
+ }
+
 #let w(s) = v(s, weak: true)
 #let t = 2
 #let rt = calc.sqrt(t)
@@ -13,9 +21,8 @@
   columns: 4,
   align: (right, center, left, left),
   $symbol$, $::=$, [], name + ":",
-  ..rules
-    .pos()
-    .chunks(2)
+  ..(chunks(rules.pos(), 2))
+    // .chunks(2)
     .map( ((rule, desc)) => ([], $|$, $rule$, "– " + desc) )
     .flatten()
 )
@@ -35,10 +42,10 @@
 #let lower(it) = $floor(it)$
 #let freeze(it) = $abs(it)$
 
-// #let input(it) = colour(blue, it)
-// #let output(it) = colour(red, it)
-#let input(it) = it
-#let output(it) = it
+#let input(it) = text(blue, it)
+#let output(it) = text(red, it)
+// #let input(it) = it
+// #let output(it) = it
 
 #let meta(it) = $grayed(it)$
 #let synthesize(contextIn, expression, quantity , type, contextOut) = $
@@ -85,7 +92,7 @@ $
 
 #let arrow(..from, to) = {
   let from = from.pos().join($, space$)
-  $\(from\) -> to$
+  $\(from\) arrow to$
   // let from = from.pos().join($times$)
   // $\(from -> to\)$
 }
@@ -113,9 +120,8 @@ $
   columns: 3,
   align: (left, center, left),
   table.cell(colspan: 3, signature),
-  ..rules
-    .pos()
-    .chunks(2)
+  ..(chunks(rules.pos(), 2))
+    // .chunks(2)
     .map( ((pattern, definition)) => (pattern, $=$, definition) )
     .flatten()
 )
@@ -123,9 +129,8 @@ $
 #let shorthands(relation, ..rules) = align(center, table(
   columns: 4,
   align: (right, center, left, left),
-  ..rules
-    .pos()
-    .chunks(3)
+  ..(chunks(rules.pos(), 3))
+    // .chunks(3)
     .map( ((short, long, description)) => (short, relation, long, "– " + description) )
     .flatten()
 ))

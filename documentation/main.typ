@@ -1,4 +1,4 @@
-#import "template.typ": setup
+#import "typ/styles.typ": setup
 
 #let (wideblock, sideblock, sidenote, aside, todo, template) = setup()
 
