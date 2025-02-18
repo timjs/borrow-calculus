@@ -7,9 +7,12 @@
 
 $|space.med|space.hair|space.thin|space.sixth|space.quarter|space.third|space.en|space.quad|$
 
+$|space.med|space.thin|space.quarter|space.third|space.en|space|$
+
 $\
 |space| \
-|space.quad| 1\
+|wide| 0.5 \
+|quad| 1\
 |space.en space.en| 2\
 |space.third space.third space.third| 3\
 |space.quarter space.quarter space.quarter space.quarter| 4\
@@ -19,10 +22,10 @@ $
 $\
 |thin|med|thick|quad|wide| \
 |wide| "wide = 2 quad"\
-|quad| "quad"\
-|thick thick thick| "3 thick"\
-|med med med med| "4 med"\
-|thin thin thin thin thin thin| "6 thin"\
+|quad quad| "quad"\
+|thick thick thick thick thick thick| "3 thick"\
+|med med med med med med med med| "4 med"\
+|thin thin thin thin thin thin thin thin thin thin thin thin| "6 thin"\
 |quad| "quad"\
 $
 

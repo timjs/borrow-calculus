@@ -121,7 +121,9 @@ $
   align: (left, center, left),
   table.cell(colspan: 3, signature),
   ..(chunks(rules.pos(), 2))
-    // .chunks(2)
+  // ..rules
+  //   .pos()
+  //   .chunks(2)
     .map( ((pattern, definition)) => (pattern, $=$, definition) )
     .flatten()
 )
