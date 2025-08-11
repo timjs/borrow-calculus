@@ -1,0 +1,110 @@
+synthesize : Context -> Expression -> Quantity ->{Throw (synthesize.Error, Context), Ask Typetext} (Type, Context)
+synthesize g0 e q =
+  match e with
+    Var x1 ->
+      match (q, g0 |> Context.lookup x1) with
+        (Zero, _) -> bug "variable asked with quantity zero"
+        (Quantity.One, Some (Quantity.One, t)) ->
+          (t, g0 |> Context.set Zero x1)
+        (Epsilon, Some (Epsilon, t)) -> (t, g0)
+        (Omega, Some (Omega, t)) -> (t, g0)
+        (Quantity.One, Some (Omega, t)) -> (t, g0)
+        (Epsilon, Some (Omega, t)) -> (t, g0)
+        (_, Some (q', _)) -> throw (VarMismatch q q' x1, g0)
+        (_, None) -> throw (synthesize.Error.VarDoesntExist x1, g0)
+    Borrow xs e0 ->
+      g0' = g0 |> borrows xs
+      (t0, g1) = synthesize g0' e0 (lift q)
+      (t0, g1 |> resets xs)
+    Abstract ps e0 ->
+      use Context \/ \\ filter make
+      use List map
+      use Quantity One
+      tn = map (cases (q, _, t) -> (q, t)) ps
+      xs = map (cases (_, x, t) -> x) ps
+      match q with
+        Epsilon ->
+          g0' = filter Epsilon g0 \/ filter Omega g0 \/ make ps
+          (t0, g1) = synthesize g0' e0 One
+          (Arrow tn t0, filter One g0 \/ g1 \\ xs)
+        One     ->
+          g0' = filter One g0 \/ filter Omega g0 \/ make ps
+          (t0, g1) = synthesize g0' e0 One
+          (Arrow tn t0, filter Epsilon g0 \/ g1 \\ xs)
+        Omega   ->
+          g0' = filter Omega g0 \/ make ps
+          (t0, g1) = synthesize g0' e0 One
+          (Arrow tn t0, filter Epsilon g0 \/ filter One g0 \/ g1 \\ xs)
+        Zero    -> bug "lambda asked with quantity zero"
+    Apply e0 es ->
+      m = match q with
+        Omega -> lever
+        _     -> Function.id
+      match synthesize g0 e0 Epsilon with
+        (Arrow qts t0, g1) ->
+          (qs, ts) = List.unzip qts
+          synthesize.application g0 g1 t0 es (List.map m qs) ts
+        (t', g')           -> throw (FunNeeded t', g')
+    Expression.Nat _ -> (Type.Nat, g0)
+    Operate _ e1 e2 -> synthesize.primitive Type.Nat g0 e1 e2 q
+    Compare _ e1 e2 -> synthesize.primitive Bool g0 e1 e2 q
+    Pair es ->
+      use List :+
+      go = cases
+        ((gi_p, gi), ts), ei ->
+          (ti, gi_n) = synthesize (gi_p /\ gi) ei q
+          ((gi, gi_n), ts :+ ti)
+      let
+        ((_, gn_n), ts) = List.foldLeft go ((g0, g0), []) es
+        (Product ts, gn_n)
+    Split q0 xs e0 e ->
+      match synthesize g0 e0 q0 with
+        (Product ts, g1) ->
+          g1' = g1 |> Context.extend q0 xs ts
+          synthesize g1' e q
+        (t', g')         -> throw (SplitMismatch t', g')
+    Construct c es ->
+      (ts, t0) =
+        ask
+          |> constructors
+          |> Map.lookup! (pairedWith g0 ConstructorDoesntExist) c
+      qs = List.repeat (List.size ts) q
+      synthesize.application g0 g0 t0 es qs ts
+    Match q0 e0 pes ->
+      (t0, g0') = synthesize g0 e0 q0
+      d = ask |> constructors
+      go = cases
+        (to, gm), (Pattern ci xsi, ei) ->
+          (tsi, t0') =
+            d |> Map.lookup! (pairedWith g0 ConstructorDoesntExist) ci
+          g0'' = g0' |> Context.extend q0 xsi tsi
+          let
+            (t', gi) = synthesize g0'' ei q
+            if t0' !== t0 then throw (ConsMismatch t0' t0, g0'')
+            else
+              match to with
+                Some t ->
+                  if t' !== t then throw (BranchMismatch t' t, g0'')
+                  else (Some t, gm /\ gi)
+                None -> (Some t', gm /\ gi)
+      match List.Nonempty.foldLeft go (None, Context.empty) pes with
+        (Some t, gm) -> (t, gm)
+        (None, _) ->
+          bug "after folding nonempty list, we always should have an answer"
+    Fold q1 e1 e2 (x1, x2, e3) ->
+      match synthesize g0 e1 q1 with
+        (List t1, g') ->
+          (t2, g'') = synthesize g' e2 Quantity.One
+          (t2', g''') =
+            synthesize
+              (g''
+                |> Context.insert x1 (q1, t1)
+                |> Context.insert x2 (Quantity.One, t2))
+              e3
+              q
+          if t2 === t2' then (t2, g''' Context.\\ [x1, x2])
+          else throw (FoldMismatch t2 t2', g''')
+        (t1, g') -> throw (synthesize.Error.ListNeeded e1 t1, g')
+    Evaluated _ ->
+      bug "There shouldn't be an evaluated value in this expression"
+
