@@ -68,33 +68,34 @@ $
 #let each(it) = $"for each" it$
 // #let with = math.dot
 #let with = $comma space$
-#let merge = $sect.double$
+#let merge = $inter.double$
 
-#let borrow(args, body) = $""^args {body}$
-#let lam(pars, body) = $|pars| space body$
-#let cls(vars, pars, body) = $attach(tl: vars, |pars|) space body$
-#let fun(name, pars, body, cont) = $keyword("fun")space name\(pars\) space body; space cont$
-#let apply(func, args) = $func\(args\)$
+#let borrow(args, body) = $""^args {space body space}$
+// #let lam(pars, body) = $|pars| space body$
+#let lam(pars, body) = $pars -> body$
+#let cls(vars, pars, body) = $attach(tl: vars, {space pars -> body space})$
+#let fun(name, pars, body, cont) = $keyword("fun") space name(pars) space body; space cont$
+#let apply(func, args) = $func(args)$
 #let tuple(..items) = {
   let items = items.pos().join([,])
-  $\(items\)$
+  $(items)$
 }
-#let variant(ctor, args) = $ctor\(args\)$
-#let list(items) = $\[items\]$
+#let variant(ctor, args) = $ctor(args)$
+#let list(items) = $[items]$
 #let val(quant, names, body, cont) = $keyword("val")^quant space names = body; space cont$
 #let split(quant, names, body, cont) = $keyword("split")^quant space names = body; space cont$
-#let match(quant, body, arms) = $keyword("match")^quant space body space \{arms\}$
+#let match(quant, body, arms) = $keyword("match")^quant space body space arms$
 //arms.pos().chunks(2).map(((pat, exp)) => pat |-> exp)$
 // #let fold(quant, list, accum, var1, var2, body) = $keyword("fold")^quant space list keyword("from") accum keyword("with") var1, var2 |-> body$
 #let fold(quant, list, accum, var1, var2, body) = $keyword("fold")^quant space list, accum, {var1, var2 |-> body}$
 #let wilt = $keyword("wilt")$
 #let bind(name, body, cont) = $keyword("with") space name space <- body; space cont$
 
-#let arrow(..from, to) = {
+#let Arrow(..from, to) = {
   let from = from.pos().join($, space$)
-  $\(from\) arrow to$
+  $(from) arrow to$
   // let from = from.pos().join($times$)
-  // $\(from -> to\)$
+  // $(from -> to)$
 }
 #let type(name, ..inner) = {
   let inner = inner.pos().join($, space$)

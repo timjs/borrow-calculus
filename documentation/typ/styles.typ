@@ -66,10 +66,10 @@
     )
     set par(
       leading: font-leading,
+      spacing: font-leading, //FIXME: is this correct?
       first-line-indent: indent-depth,
       justify: true,
     )
-    show par: set block(spacing: font-leading)
     show link: underline
 
     //// Headings ////
@@ -89,6 +89,7 @@
 
     //// Equations ////
     show math.equation: set text(font: math-font)
+    set math.lr(size: 1em) // Magic! :-D
 
     //// Floats ////
     set table(stroke: none)

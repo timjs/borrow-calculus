@@ -102,7 +102,7 @@ $
     tuple(many(e, n)), "tuple",
     val(q_0, tuple(many(x, n)), e_0, e), "split",
     variant(C, many(e, n)), "variant",
-    match(q_0, e_0, many(variant(C, many(x, n)) arrow e, m)), "match",
+    match(q_0, e_0, many(variant(C, many(x, n)) -> e, m)), "match",
   ) \
   grammar("Values", v,
     cls(more(z), many(arg(x, q, tau), n), e_0), "abstraction",
@@ -126,7 +126,7 @@ $
     List(tau), "list",
   ) \
   grammar("Function types", phi,
-    arrow(many(qt(q, tau), n), tau_0), "arrow",
+    Arrow(many(qt(q, tau), n), tau_0), "->",
   ) \
   grammar("Quantities", q,
     epsilon, "borrowed",
@@ -209,7 +209,7 @@ That is, borrowed expression surroundings are lifted to unrestricted contexts,
 the two owning quantities stay the same.
 The definition of lifting is as follows.
 $
-  function(lift(dot) : "Quantity" arrow "Quantity",
+  function(lift(dot) : "Quantity" -> "Quantity",
     lift(epsilon), omega,
     lift(q), q,
   )
@@ -272,7 +272,7 @@ This means, it suffices to check the body of an abstraction in a linear context!
 
 To select bindings with the proper quantity from the context, we use _context filtering_ which is defined as follows.
 $
-  function(Gamma^q : "Context" times "Quantity" arrow "Context",
+  function(Gamma^q : "Context" times "Quantity" -> "Context",
     nothing^q, nothing,
     (Gamma with arg(x, q, tau))^q, Gamma^q with arg(x, q, tau),
     (Gamma with arg(x, q', tau))^q, Gamma^q,
@@ -292,7 +292,7 @@ $
 ]
 
 $
-  function(lower(dot) : "Quantity" arrow "Quantity",
+  function(lower(dot) : "Quantity" -> "Quantity",
     lower(omega), epsilon,
     lower(q), q,
   )
@@ -337,7 +337,7 @@ $
 $
 
 $
-  function(freeze(dot) : "Quantity" arrow "Quantity",
+  function(freeze(dot) : "Quantity" -> "Quantity",
     freeze(1), omega,
     freeze(q), q,
   )
@@ -410,11 +410,11 @@ Note that pre-defined functions, as well as any top-level functions, can be used
 So their body is checked in a surrounding of quantity $omega$.
 $
   shorthands(":",
-    "fold"_q, arrow(qt(q, List(tau_1)), qt(1, tau_2), qt(epsilon, arrow(qt(q, tau_1), qt(1, tau_2), tau_2)), tau_2), "fold list",
+    "fold"_q, ->(qt(q, List(tau_1)), qt(1, tau_2), qt(epsilon, ->(qt(q, tau_1), qt(1, tau_2), tau_2)), tau_2), "fold list",
   ) \
   shorthands(":",
     "Nil"_tau, List(tau), "nil list",
-    "Cons", arrow(tau, List(tau), List(tau)), "cons list",
+    "Cons", ->(tau, List(tau), List(tau)), "cons list",
   ) \
   shorthands(":=",
     "Bool", variants("False"(), "True"()), "boolean type",
