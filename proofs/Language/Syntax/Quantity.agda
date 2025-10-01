@@ -15,3 +15,6 @@ _≟_ : (q₁ : Quantity) → (q₂ : Quantity) → Dec (q₁ ≡ q₂)
 ω ≟ ε = no λ()
 ω ≟ 𝟏 = no λ()
 ω ≟ ω = yes refl
+
+-- instance
+--   Quantity-≡-isDecEquivalence = isDecEquivalence _?=_

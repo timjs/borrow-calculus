@@ -2,8 +2,6 @@
 {-# OPTIONS --allow-unsolved-metas #-}
 module Language.Context where
 
-import Data.String as String
-
 open import Prelude
 open import Language.Syntax
 
@@ -11,10 +9,10 @@ import Language.Syntax.Quantity as Quantity
 
 infixl 8  _/_  -- _÷_
 infixl 7  _∩_
-infixl 6  _∪_  _∪ⁿ_∥_  _–_  _–′_  _–ⁿ_∥_
+infixl 6  _∪_  _∪ⁿ_×_  _–_  _–ⁿ_×_
 infix  6  ⌊_⌋_  ⌈_⌉_
 -- infixr 4  _,_
-infix  1  _∋_↝_
+infix  1  _∋_↝_  _∋_∶_
 ```
 
 = Contexts
@@ -33,9 +31,9 @@ _∪_ : Context → Context → Context
 Γ ∪ ∅ = Γ
 Γ ∪ (Γ' , q ∙ x ∶ τ) = (Γ , q ∙ x ∶ τ) ∪ Γ'
 
-_∪ⁿ_∥_ : Context → (n : ℕ) → Parameter ^ n → Context
-Γ ∪ⁿ zero ∥ [] = Γ
-Γ ∪ⁿ suc n ∥ (q ∙ x ∶ τ ∷ q∙x∶τⁿ) = (Γ , q ∙ x ∶ τ) ∪ⁿ n ∥ q∙x∶τⁿ
+_∪ⁿ_×_ : Context → (n : ℕ) → Parameter ^ n → Context
+Γ ∪ⁿ 0 × [] = Γ
+Γ ∪ⁿ suc n × (q ∙ x ∶ τ ∷ q∙x∶τⁿ) = (Γ , q ∙ x ∶ τ) ∪ⁿ n × q∙x∶τⁿ
 
 _∩_ : Context → Context → Context
 _∩_ = {!   !}
@@ -56,11 +54,11 @@ _–_ : Context → Name → Context
 ... | yes refl = Γ -- – x₀
 ... | no ¬x≡x₀ = Γ – x₀ , q ∙ x ∶ τ
 
-_–′_ : Context → Parameter → Context
-Γ –′ _ ∙ x₀ ∶ _ = Γ – x₀
+-- _–′_ : Context → Parameter → Context
+-- Γ –′ _ ∙ x₀ ∶ _ = Γ – x₀
 
-_–ⁿ_∥_ : Context → (n : ℕ) → Parameter ^ n → Context
-Γ –ⁿ _ ∥ q∙x∶τⁿ = Vec.foldl′ _–′_ Γ q∙x∶τⁿ
+_–ⁿ_×_ : Context → (n : ℕ) → Name ^ n → Context
+Γ –ⁿ _ × q∙x∶τⁿ = Vec.foldl′ _–_ Γ q∙x∶τⁿ
 ```
 
 ∅ – _ = ∅
@@ -93,7 +91,16 @@ data _∋_↝_ : Context → Parameter → Context → Set where
     Γ ∋ q ∙ x ∶ τ ↝ Γ' →
     ------------------------------------------------
     Γ , q' ∙ x' ∶ τ' ∋ q ∙ x ∶ τ ↝ Γ' , q' ∙ x' ∶ τ'
+```
 
+```agda
+_∋_∶_ : Context → Name → Type → Set
+Δ ∋ C ∶ ⟨q∙x∶τⁿ⟩⟶τ₀ = Δ ∋ _ ∙ C ∶ ⟨q∙x∶τⁿ⟩⟶τ₀ ↝ _
+```
+
+
+
+```agda
 -- Modifify quantity of one name
 [_]¹⟨_↦_⟩_ : Context → Quantity → Quantity → Name → Context
 [ ∅ ]¹⟨ _ ↦ _ ⟩ _ = ∅
@@ -120,6 +127,10 @@ data _∋_↝_ : Context → Parameter → Context → Set where
 -- Unborrow one name
 ⌈_⌉_ : Context → Name * → Context
 ⌈_⌉_ = [_]⟨ ε ↦ 𝟏 ⟩_
+```
+
+
+
 
 {-
 ⌊ Γ , q ∙ x ∶ τ ⌋¹ y with x String.≟ y | q Quantity.≟ 𝟏
@@ -147,4 +158,3 @@ data _∋_↝_ : Context → Parameter → Context → Set where
 --     Γ ∋! x ⦂ τ →
 --     ----------------
 --     Γ , y ⦂ σ ∋! x ⦂ τ
-```

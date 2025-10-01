@@ -13,14 +13,16 @@ data Expression where
   ` : Name → Expression
   val_∙_＝_⨾_ : Quantity → Name → Expression → Expression → Expression
   [_∣_] : Name * → Expression → Expression
-  fn[_]_ : ∀{n} → Parameter ^ n → Expression → Expression
-  _[_] : ∀{n} → Expression → Expression ^ n → Expression
+  fn⟨_⟩_ : ∀{n} → Parameter ^ n → Expression → Expression
+  _⟨_⟩ : ∀{n} → Expression → Expression ^ n → Expression
+  _⟪_⟫ : ∀{n} → Name → Expression ^ n → Expression
   match_∙_[_] : ∀ {m} → Quantity → Expression → Branch ^ m → Expression
 
 record Branch where
   inductive
-  constructor _[_]↦_
+  constructor _⟪_×_⟫↦_
   field
     name : Name
-    binders : ∀{n} → Name ^ n
+    arity : ℕ
+    binders : Name ^ arity
     body : Expression
