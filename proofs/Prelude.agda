@@ -3,37 +3,39 @@ module Prelude where
 
 ---- Opened -----
 
-open import Data.Bool.Base using (true; false; T; not; if_then_else_) renaming (Bool to 𝔹) public
+open import Data.Bool using (true; false; T; not; if_then_else_) renaming (Bool to 𝔹) public
 open import Data.Empty using (⊥; ⊥-elim) public
-open import Data.Integer.Base using (ℤ)
-open import Data.Sum.Base using () renaming (_⊎_ to _∨_; inj₁ to left; inj₂ to right) public
+open import Data.Integer using (ℤ)
+open import Data.Sum using () renaming (_⊎_ to _∨_; inj₁ to wrong; inj₂ to right) public
 open import Data.Irrelevant using (Irrelevant) public
-open import Data.List.Base using (_∷_; []) renaming (List to _*) public
-open import Data.List.NonEmpty.Base using (_∷_) renaming (List⁺ to _+)
+open import Data.List using (_∷_; []) renaming (List to _*) public
+open import Data.List.NonEmpty using (_∷_) renaming (List⁺ to _+)
 open import Data.Maybe using (Maybe; just; nothing) public
-open import Data.Nat.Base using (ℕ; zero; suc; _≤ᵇ_; _+_) public
-open import Data.Product.Base using (Σ-syntax; ∃-syntax; _,_) renaming (_×_ to _∧_; proj₁ to fst; proj₂ to snd) public
+open import Data.Nat using (ℕ; zero; suc; _≤ᵇ_; _+_) public
+open import Data.Product using (Σ-syntax; ∃-syntax; _,_) renaming (_×_ to _∧_; proj₁ to fst; proj₂ to snd) public
 open import Data.String using (String) public
-open import Data.Unit.Base using (⊤) renaming (tt to ⟨⟩) public
-open import Data.Vec.Base using (_∷_; []) renaming (Vec to _^_) public
+open import Data.Unit using (⊤) renaming (tt to ⟨⟩) public
+open import Data.Vec using (_∷_; []) renaming (Vec to _^_) public
 
-open import Function.Base using (_∘_; _|>_; case_of_) public
+open import Function using (_∘_; _|>_; case_of_) public
 
 open import Relation.Binary.PropositionalEquality using (_≡_; _≢_; refl; sym; trans; cong) public
 open import Relation.Binary.PropositionalEquality.Properties using (isDecEquivalence) public
-open import Relation.Nullary.Decidable.Core using (Dec; yes; no; True; False; ¬?) renaming (⌊_⌋ to ∥_∥) public
+open import Relation.Nullary.Decidable using (Dec; yes; no; True; False; ¬?) renaming (⌊_⌋ to ∥_∥) public
 open import Relation.Nullary.Negation using (¬_; contradiction) public
 
 
 ---- Qualified ----
 
--- Note that this only works because `String` is not a datatype
+-- Note that this only works because `String` is not a datatype but a postulate
 -- and we renamed `List` to `_*`, `NonEmpty` to `_+` and `Vec` to `_^_`
 -- so that we don't have clashing names on the module plane.
-import Data.String; module String = Data.String
-import Data.List; module List = Data.List
-import Data.List.NonEmpty; module NonEmpty = Data.List.NonEmpty
-import Data.Vec; module Vec = Data.Vec
+module String = Data.String
+module List = Data.List
+module NonEmpty = Data.List.NonEmpty
+module Vec = Data.Vec
+module Int = Data.Integer
+module Nat = Data.Nat
 
 
 {--- Instanced ----

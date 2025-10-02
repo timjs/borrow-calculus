@@ -1,12 +1,13 @@
 ```agda
+{-# OPTIONS --allow-unsolved-metas #-}
 module Language.Judgement where
 
 open import Prelude
 
-open import Language.Context
-open import Language.Syntax
+open import Language.Context public
+open import Language.Syntax public
 
-infix  2  _⊢_∙_∶_⊣_  _⊩_×_∙_∶_⊣_  _⊩→_×_∙_of_as_∶_⊣_
+infix  3  _⊢_∙_∶_⊣_  _⊩_×_∙_∶_⊣_  _⊩→_×_∙_of_as_∶_⊣_  -- Note: Fix precedence (higher than ∃ 2, lower than ...)
 
 data _⊢_∙_∶_⊣_ : Context → Quantity → Expression → Type → Context → Set
 data _⊩_×_∙_∶_⊣_ : Context → (n : ℕ) → Quantity ^ n → Expression ^ n → Type ^ n → Context → Set
@@ -84,16 +85,16 @@ data _⊢_∙_∶_⊣_ where
     Γ₁ ⊩ n × (Vec.replicate n q) ∙ eⁿ ∶ types q∙x∶τⁿ ⊣ Γₙ₊₁ →
     ---------------------------------------------------------
     Γ₁ ⊢ q ∙ C ⟪ eⁿ ⟫ ∶ τ₀ ⊣ Γₙ₊₁
-  ⊢mat : ∀{Δ Γ₀ Γ₀′ Γ₁ Γₘ₊₁ n m q C q₀ e₀ eⁿ C⟨xⁿ⟩↦eᵐ q∙x∶τⁿ τ τ₀} →
+  ⊢mat : ∀{Δ Γ₀ Γ₀′ Γ₁ Γₘ₊₁ n m q C q₀ e₀ eⁿ C⟪xⁿ⟫↦eᵐ q∙x∶τⁿ τ τ₀} →
      Γ₀ ⊢ q₀ ∙ e₀ ∶ τ₀ ⊣ Γ₀′ →
-     Γ₀′ ⊩→ m × q ∙ q₀ of C⟨xⁿ⟩↦eᵐ as τ₀ ∶ τ ⊣ Γₘ₊₁ →
+     Γ₀′ ⊩→ m × q ∙ q₀ of C⟪xⁿ⟫↦eᵐ as τ₀ ∶ τ ⊣ Γₘ₊₁ →
      -----------------------------------------------
-     Γ₀ ⊢ q ∙ match q₀ ∙ e₀ [ C⟨xⁿ⟩↦eᵐ ] ∶ τ ⊣ Γₘ₊₁
-  -- ⊢mat : ∀{Δ Γ₀ Γ₁ Γₘ₊₁ n q C e₀ eⁿ C⟨xⁿ⟩↦eᵐ q∙x∶τⁿ τ τ₀} →
+     Γ₀ ⊢ q ∙ match q₀ ∙ e₀ [ C⟪xⁿ⟫↦eᵐ ] ∶ τ ⊣ Γₘ₊₁
+  -- ⊢mat : ∀{Δ Γ₀ Γ₁ Γₘ₊₁ n q C e₀ eⁿ C⟪xⁿ⟫↦eᵐ q∙x∶τⁿ τ τ₀} →
   --   Δ ∋ C ∶ n × q∙x∶τⁿ ⟶ τ₀ →
   --   Γ₁ ⊩ n × (Vec.replicate n q) ∙ eⁿ ∶ types q∙x∶τⁿ ⊣ Γₘ₊₁ →
   --   -----------------------------------------------
-  --   Γ₀ ⊢ q ∙ match q ∙ e₀ [ C⟨xⁿ⟩↦eᵐ ] ∶ τ ⊣ Γₘ₊₁
+  --   Γ₀ ⊢ q ∙ match q ∙ e₀ [ C⟪xⁿ⟫↦eᵐ ] ∶ τ ⊣ Γₘ₊₁
 
 data _⊩_×_∙_∶_⊣_ where
   ⊩empty : ∀{Γ₀} →
