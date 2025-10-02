@@ -38,15 +38,16 @@ module Int = Data.Integer
 module Nat = Data.Nat
 
 
-{--- Instanced ----
+--- Instanced ----
 
-open import Relation.Binary.Structures using (IsDecEquivalence; IsDecTotalOrder)
 open import Relation.Binary.Definitions using (Decidable)
--- open IsDecEquivalence {{...}} public
+open import Relation.Binary.Structures using (IsDecEquivalence; IsDecTotalOrder)
+open IsDecEquivalence {{...}} using (_≟_) public
 
-_≟_ : ∀{ℓ} {A : Set ℓ} {{_ : IsDecEquivalence {A = A} _≡_}} → Decidable _≡_
-_≟_ {{decEq}} = IsDecEquivalence._≟_ decEq
+-- _≟_ : ∀{ℓ} {A : Set ℓ} {{_ : IsDecEquivalence {A = A} _≡_}} → Decidable _≡_
+-- _≟_ {{decEq}} = IsDecEquivalence._≟_ decEq
 
+-- Fixme: somehow instance of _≟_ for String cannot be found...
 open import Data.Bool.Instances
 open import Data.Char.Instances
 open import Data.Float.Instances
@@ -61,7 +62,6 @@ open import Data.Sum.Instances
 open import Data.Unit.Instances
 open import Data.Vec.Instances
 
--}
 
 ---- Additional ----
 

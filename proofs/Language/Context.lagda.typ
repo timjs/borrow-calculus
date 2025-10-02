@@ -44,7 +44,7 @@ _∩_ = {!   !}
 ```agda
 _/_ : Context → Quantity → Context
 ∅ / _ = ∅
-(Γ , q ∙ x ∶ τ) / q₀ with q Quantity.≟ q₀
+(Γ , q ∙ x ∶ τ) / q₀ with q ≟ q₀
 ... | yes refl = Γ / q₀ , q ∙ x ∶ τ
 ... | no ¬q≡q₀ = Γ / q₀
 
@@ -104,7 +104,7 @@ _∋_∶_ : Context → Name → Type → Set
 -- Modifify quantity of one name
 [_]¹⟨_↦_⟩_ : Context → Quantity → Quantity → Name → Context
 [ ∅ ]¹⟨ _ ↦ _ ⟩ _ = ∅
-[ Γ , q ∙ x ∶ τ ]¹⟨ q₁ ↦ q₂ ⟩ y with x String.≟ y | q Quantity.≟ q₁
+[ Γ , q ∙ x ∶ τ ]¹⟨ q₁ ↦ q₂ ⟩ y with x String.≟ y | q ≟ q₁
 ... | yes refl | yes refl = Γ , q₂ ∙ x ∶ τ
 ... | _ | _ = [ Γ ]¹⟨ q₁ ↦ q₂ ⟩ x , q ∙ x ∶ τ
 
