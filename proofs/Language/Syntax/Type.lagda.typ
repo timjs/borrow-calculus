@@ -5,6 +5,8 @@ open import Prelude
 
 open import Language.Syntax.Name
 open import Language.Syntax.Quantity
+
+import Data.Vec.Properties as Vec
 ```
 
 We define `Type`s, `Parameter`s, and `Constructor`s simultaneously.
@@ -43,7 +45,7 @@ types = Vec.map Parameter.type
 ```agda
 record Constructor where
   inductive
-  constructor _[_] -- Todo: change
+  constructor _⟪_⟫ -- Todo: change
   field
     name : Name
     type : ∀{n} → Type ^ n
@@ -52,5 +54,32 @@ record Constructor where
 ```agda
 data Type where
   _×_⟶_ : (n : ℕ) → Parameter ^ n → Type → Type
-  ⟨∣_∣⟩ : ∀{m} → Constructor ^ m → Type -- Todo: change
+  ⟨|_|⟩ : ∀{m} → Constructor ^ m → Type -- Todo: change
 ```
+
+== Decidable equality
+
+For type synthesis, we need decidable equality on `Type`s and `Parameter`s.
+
+```agda
+_≟ᵖ_ : (p₁ : Parameter) → (p₂ : Parameter) → Dec (p₁ ≡ p₂)
+_≟ᶜ_ : (s₁ : Constructor) → (s₂ : Constructor) → Dec (s₁ ≡ s₂)
+_≟ᵗ_ : (τ₁ : Type) → (τ₂ : Type) → Dec (τ₁ ≡ τ₂)
+
+instance
+  Parameter-≡-isDecEquivalence = isDecEquivalence _≟ᵖ_
+  Constructor-≡-isDecEquivalence = isDecEquivalence _≟ᶜ_
+  Type-≡-isDecEquivalence = isDecEquivalence _≟ᵗ_
+
+(q₁ ∙ x₁ ∶ τ₁) ≟ᵖ (q₂ ∙ x₂ ∶ τ₂) with q₁ ≟ q₂ | x₁ ≟ x₂ | τ₁ ≟ τ₂
+... | yes refl | yes refl | yes refl = yes refl
+... | pq | px | pt = no {!   !}
+
+(C₁ ⟪ τⁿ₁ ⟫) ≟ᶜ (C₂ ⟪ τⁿ₂ ⟫) with C₁ ≟ C₂ | τⁿ₁ ≟ τⁿ₂
+... | yes refl | yes p = {! p !} -- yes refl
+... | pC | pt = no {!   !}
+```
+
+(n × x ⟶ t0) ≟ᵗ (n′ × x′ ⟶ t0′) = {!  !}
+(n × x ⟶ t1) ≟ᵗ (⟨∣ x₁ ∣⟩) = {!   !}
+⟨∣ cs ∣⟩ ≟ᵗ t2 = {!   !}
