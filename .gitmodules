@@ -1,6 +1,6 @@
-[submodule "paper/acmart"]
-	path = paper/acmart
+[submodule "paper/lib/acmart"]
+	path = paper/lib/acmart
 	url = git@github.com:michel-steuwer/typst-acmart.git
-[submodule "paper/basics"]
-	path = paper/basic
+[submodule "paper/lib/basics"]
+	path = paper/lib/basic
 	url = https://github.com/timjs/typst-basic.git
