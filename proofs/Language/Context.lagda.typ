@@ -9,7 +9,7 @@ import Language.Syntax.Quantity as Quantity
 
 infixl 8  _/_  -- _÷_
 infixl 7  _∩_
-infixl 6  _∪_  _∪ⁿ_×_  _–_  _–ⁿ_×_
+infixl 6  _∪_  _∪ⁿ_  _–_  _–ⁿ_
 infix  6  ⌊_⌋_  ⌈_⌉_
 -- infixr 4  _,_
 infix  3  _∋_↝_  _∋_∶_
@@ -31,9 +31,9 @@ _∪_ : Context → Context → Context
 Γ ∪ ∅ = Γ
 Γ ∪ (Γ' , q ∙ x ∶ τ) = (Γ , q ∙ x ∶ τ) ∪ Γ'
 
-_∪ⁿ_×_ : Context → (n : ℕ) → Parameter ^ n → Context
-Γ ∪ⁿ 0 × [] = Γ
-Γ ∪ⁿ suc n × (q ∙ x ∶ τ ∷ q∙x∶τⁿ) = (Γ , q ∙ x ∶ τ) ∪ⁿ n × q∙x∶τⁿ
+_∪ⁿ_ : ∀{n} → Context → Parameter ^ n → Context
+Γ ∪ⁿ  [] = Γ
+Γ ∪ⁿ (q ∙ x ∶ τ ∷ q∙x∶τⁿ) = (Γ , q ∙ x ∶ τ) ∪ⁿ q∙x∶τⁿ
 
 _∩_ : Context → Context → Context
 _∩_ = {!   !}
@@ -57,8 +57,8 @@ _–_ : Context → Name → Context
 -- _–′_ : Context → Parameter → Context
 -- Γ –′ _ ∙ x₀ ∶ _ = Γ – x₀
 
-_–ⁿ_×_ : Context → (n : ℕ) → Name ^ n → Context
-Γ –ⁿ _ × q∙x∶τⁿ = Vec.foldl′ _–_ Γ q∙x∶τⁿ
+_–ⁿ_ : ∀{n} → Context → Name ^ n → Context
+Γ –ⁿ q∙x∶τⁿ = Vec.foldl′ _–_ Γ q∙x∶τⁿ
 ```
 
 ∅ – _ = ∅

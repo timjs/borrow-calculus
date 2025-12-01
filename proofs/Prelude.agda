@@ -63,6 +63,12 @@ open import Data.Vec.Instances public
 
 open import Level using (_⊔_)
 
+infixr 12  _×_
+
+-- Just normal `Vec`tors, but with an explicit length
+_×_ : ∀{a} → {A : Set a} → (n : ℕ) → A ^ n → A ^ n
+n × xⁿ = xⁿ
+
 -- Our own definition of quotients/refinements
 -- to use reuse common constructor `_,_` of Σ-types.
 -- (Otherwise e get "Cannot split on argument of unresolved type" errors

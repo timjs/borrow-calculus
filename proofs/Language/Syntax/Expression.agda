@@ -20,9 +20,8 @@ data Expression where
 
 record Branch where
   inductive
-  constructor _⟪_×_⟫↦_
+  constructor _⟪_⟫↦_
   field
     name : Name
-    arity : ℕ
-    binders : Name ^ arity
+    binders : ∀{n} → Name ^ n
     body : Expression

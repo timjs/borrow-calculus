@@ -1,4 +1,5 @@
 ```agda
+{-# OPTIONS --allow-unsolved-metas #-}
 module Language.Syntax.Type where
 
 open import Prelude
@@ -15,6 +16,7 @@ data Type : Set
 record Parameter : Set
 record Constructor : Set
 
+infix 10  _⟶_
 infix  9  _∙_∶_
 ```
 
@@ -53,7 +55,7 @@ record Constructor where
 
 ```agda
 data Type where
-  _×_⟶_ : (n : ℕ) → Parameter ^ n → Type → Type
+  _⟶_ : ∀{n} → Parameter ^ n → Type → Type
   ⟨|_|⟩ : ∀{m} → Constructor ^ m → Type -- Todo: change
 ```
 
@@ -78,6 +80,8 @@ instance
 (C₁ ⟪ τⁿ₁ ⟫) ≟ᶜ (C₂ ⟪ τⁿ₂ ⟫) with C₁ ≟ C₂ | τⁿ₁ ≟ τⁿ₂
 ... | yes refl | yes p = {! p !} -- yes refl
 ... | pC | pt = no {!   !}
+
+t1 ≟ᵗ t2 = {!   !}
 ```
 
 (n × x ⟶ t0) ≟ᵗ (n′ × x′ ⟶ t0′) = {!  !}
